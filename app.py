@@ -156,14 +156,17 @@ def t(key):
     return TEXTS[st.session_state.lang].get(key, key)
 
 # --- NAČTENÍ KLÍČŮ Z PROHLÍŽEČE (LOCAL STORAGE) ---
+_restored_any_key = False
 if "g_key" in st.query_params:
     st.session_state.gemini_key = st.query_params["g_key"]
-    st.query_params.clear()
+    _restored_any_key = True
 if "n_key" in st.query_params:
     st.session_state.nim_key = st.query_params["n_key"]
-    st.query_params.clear()
+    _restored_any_key = True
 if "m_key" in st.query_params:
     st.session_state.mistral_key = st.query_params["m_key"]
+    _restored_any_key = True
+if _restored_any_key:
     st.query_params.clear()
 
 # --- 1. INICIALIZACE PAMĚTI ---
@@ -853,11 +856,20 @@ elif app_mode == t("nav_arena"):
         progress_bar.progress(1.0)
         time.sleep(get_delay_for_provider(st.session_state.provider_mod))
 
-        summary_context = (
-            f"TÉMA: '{st.session_state.current_topic}'\n\n" if st.session_state.lang == "cs" else f"TOPIC: '{st.session_state.current_topic}'\n\n"
-            f"SOUHRN DOKUMENTŮ: {st.session_state.topic_summary}\n\n" if st.session_state.lang == "cs" else f"DOCUMENT SUMMARY: {st.session_state.topic_summary}\n\n"
-            "PRŮBĚH DEBATY:\n" if st.session_state.lang == "cs" else "DEBATE TRANSCRIPT:\n" + "\n".join([f"{s}: {t}" for s, t, m in st.session_state.full_history])
-        )
+        if st.session_state.lang == "cs":
+            summary_context = (
+                f"TÉMA: '{st.session_state.current_topic}'\n\n"
+                f"SOUHRN DOKUMENTŮ: {st.session_state.topic_summary}\n\n"
+                "PRŮBĚH DEBATY:\n"
+                + "\n".join([f"{s}: {t}" for s, t, m in st.session_state.full_history])
+            )
+        else:
+            summary_context = (
+                f"TOPIC: '{st.session_state.current_topic}'\n\n"
+                f"DOCUMENT SUMMARY: {st.session_state.topic_summary}\n\n"
+                "DEBATE TRANSCRIPT:\n"
+                + "\n".join([f"{s}: {t}" for s, t, m in st.session_state.full_history])
+            )
         judge_prompt = (
             "Jsi přísný a nestranný rozhodčí. Zhodnoť průběh debaty. NEJDŘÍVE SI PEČLIVĚ PŘEČTI 'ZADÁNÍ TÉMATU'. Pokud zadání obsahuje konkrétní požadavek na formu rozhodnutí, MUSÍŠ tento pokyn bezpodmínečně dodržet. Vždy jasně vysvětli, proč jsi se takto rozhodl." 
             if st.session_state.lang == "cs" else
