@@ -417,11 +417,29 @@ def render_critique_ui(available_providers_list):
     st.subheader(t("critique_title"))
     st.caption(t("critique_caption"))
 
+    # 1. Pomocná callback funkce, která zajistí plynulejší načtení
+    def start_critique():
+        st.session_state.show_critique_ui = True
+
     if not st.session_state.show_critique_ui and not st.session_state.critique_md:
-        if st.button(t("start_critique"), type="primary", use_container_width=True):
-            st.session_state.show_critique_ui = True
+        # Použijeme on_click místo klasického "if st.button"
+        st.button(t("start_critique"), type="primary", use_container_width=True, on_click=start_critique)
 
     if not (st.session_state.show_critique_ui or st.session_state.critique_md): return
+
+    # 2. TENTO MALÝ JS SKRIPT ZAJISTÍ POSUNUTÍ STRÁNKY DOLŮ
+    components.html(
+        """
+        <script>
+            setTimeout(function() {
+                var main = window.parent.document.querySelector('.main');
+                if (main) { main.scrollTop = main.scrollHeight; }
+            }, 50);
+        </script>
+        """,
+        height=0, 
+        width=0
+    )
 
     tab_api, tab_ext = st.tabs([t("tab_api"), t("tab_ext")])
 
