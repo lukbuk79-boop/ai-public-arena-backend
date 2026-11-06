@@ -495,11 +495,17 @@ def render_critique_ui(available_providers_list):
 
 
 # --- 3. POSTRANNÍ PANEL ---
+# --- 3. POSTRANNÍ PANEL ---
 with st.sidebar:
-    # Vlaječky nad přepínačem jazyků
-    st.markdown("<div style='text-align: center; font-size: 24px; margin-bottom: -15px;'>🇨🇿 🇬🇧</div>", unsafe_allow_html=True)
+    # Zobrazení vlajek pomocí nativních Streamlit komponent
+    col1, col2 = st.columns(2)
+    with col1:
+        st.image("cz.png", use_container_width=True)
+    with col2:
+        st.image("gb.png", use_container_width=True)
     
-    lang_choice = st.radio(t("lang_name"), ["🇨🇿 Čeština", "🇬🇧 English"], index=0 if st.session_state.lang == "cs" else 1, horizontal=True)
+    # Z přepínače jsme odstranili emoji
+    lang_choice = st.radio(t("lang_name"), ["Čeština", "English"], index=0 if st.session_state.lang == "cs" else 1, horizontal=True)
     st.session_state.lang = "cs" if "Čeština" in lang_choice else "en"
     
     st.divider()
