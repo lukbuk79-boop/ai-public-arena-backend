@@ -46,7 +46,7 @@ TEXTS = {
         "topic_file": "Název diskuze (pro export):",
         "upload_topic": "Nahrajte podklady pro diskuzi (PDF, MD, TXT)",
         "start_debate": "🚀 Spustit diskuzi",
-        "no_key_error": "⚠️ **Nemáte zadán žádný API klíč!** Pro spuštění debaty přejděte do postranního panelu vlevo a vložte alespoň jeden klíč.",
+        "no_key_error": "⚠️ **Nemáte zadán žádný API klíč!** K provozu arény bohatě stačí jeden API klíč. Pokud žádný nemáte, nejjednodušší je [**Google Gemini**](https://aistudio.google.com/app/apikey) (stačí vám k tomu jen běžný Google účet).",
         "tip": "💡 **Tip:** K provozu arény bohatě stačí **jeden API klíč**. Pokud žádný nemáte, nejjednodušší je [**Google Gemini**](https://aistudio.google.com/app/apikey) (stačí vám k tomu jen běžný Google účet).",
         "debate_title": "🗣️ AI Public Aréna",
         "debate_caption": "Automatizovaná diskuze dvou AI osobností s dynamickým výběrem modelů.",
@@ -108,7 +108,7 @@ TEXTS = {
         "topic_file": "Debate name (for export):",
         "upload_topic": "Upload debate materials (PDF, MD, TXT)",
         "start_debate": "🚀 Start Debate",
-        "no_key_error": "⚠️ **No API key provided!** To start the debate, go to the left sidebar and enter at least one key.",
+        "no_key_error": "⚠️ **No API key provided!** One API key is enough to run the arena. If you don't have one, the easiest is [**Google Gemini**](https://aistudio.google.com/app/apikey) (all you need is a standard Google account).",
         "tip": "💡 **Tip:** **One API key is enough** to run the arena. If you don't have one, the easiest is [**Google Gemini**](https://aistudio.google.com/app/apikey) (all you need is a standard Google account).",
         "debate_title": "🗣️ AI Public Arena",
         "debate_caption": "Automated discussion of two AI personas with dynamic model selection.",
@@ -150,7 +150,7 @@ TEXTS = {
 
 # --- NASTAVENÍ JAZYKA ---
 if "lang" not in st.session_state:
-    st.session_state.lang = "cs" # Výchozí jazyk
+    st.session_state.lang = "cs"
 
 def t(key):
     return TEXTS[st.session_state.lang].get(key, key)
@@ -203,10 +203,10 @@ if "local_storage_checked" not in st.session_state:
     st.session_state.local_storage_checked = True
 
 form_defaults = {
-    "role_a_name": "", "role_a_prompt": "", "provider_a": "Gemini", "input_type_a": "Ručně",
-    "role_b_name": "", "role_b_prompt": "", "provider_b": "Gemini", "input_type_b": "Ručně",
+    "role_a_name": "", "role_a_prompt": "", "provider_a": "Gemini", "input_type_a": "manual",
+    "role_b_name": "", "role_b_prompt": "", "provider_b": "Gemini", "input_type_b": "manual",
     "provider_mod": "Gemini", "topic_input": "", "max_rounds": 4,
-    "topic_input_type": "Ručně", "topic_document_text": "", "topic_summary": "",
+    "topic_input_type": "manual", "topic_document_text": "", "topic_summary": "",
     "uploaded_files_hash": ""
 }
 for key, default in form_defaults.items():
@@ -427,7 +427,7 @@ def render_critique_ui(available_providers_list):
 
     with tab_api:
         if not available_providers_list:
-            st.warning(t("no_key_error").replace("debate", "critique"))
+            st.warning(t("no_key_error").replace("debate", "critique").replace("diskuze", "kritiky"))
         else:
             options = [f"{p} (API)" for p in available_providers_list]
             selected = st.selectbox(t("provider_select"), options, key="critique_api_provider")
@@ -496,7 +496,9 @@ def render_critique_ui(available_providers_list):
 
 # --- 3. POSTRANNÍ PANEL ---
 with st.sidebar:
-    # Přepínač jazyka
+    # Vlaječky nad přepínačem jazyků
+    st.markdown("<div style='text-align: center; font-size: 24px; margin-bottom: -15px;'>🇨🇿 🇬🇧</div>", unsafe_allow_html=True)
+    
     lang_choice = st.radio(t("lang_name"), ["🇨🇿 Čeština", "🇬🇧 English"], index=0 if st.session_state.lang == "cs" else 1, horizontal=True)
     st.session_state.lang = "cs" if "Čeština" in lang_choice else "en"
     
@@ -536,8 +538,17 @@ with st.sidebar:
         st.subheader(t("persona_a"))
         st.session_state.role_a_name = st.text_input(f"{t('name')} A", value=st.session_state.role_a_name)
         st.session_state.provider_a = st.selectbox(f"{t('provider_select')} A:", select_options, index=select_options.index(st.session_state.provider_a) if st.session_state.provider_a in select_options else 0)
-        st.session_state.input_type_a = st.radio(f"{t('input_type')} A:", [t("manual"), t("upload")], index=0 if st.session_state.input_type_a == "Ručně" else 1)
-        if st.session_state.input_type_a == t("manual"):
+        
+        # OPRAVENÝ PŘEPÍNAČ PRO OSOBNOST A
+        input_a_opts = ["manual", "upload"]
+        input_a_idx = 0 if st.session_state.get("input_type_a", "manual") in ["manual", "Ručně"] else 1
+        st.session_state.input_type_a = st.radio(
+            f"{t('input_type')} A:", 
+            options=input_a_opts, 
+            format_func=lambda x: t(x), 
+            index=input_a_idx
+        )
+        if st.session_state.input_type_a == "manual":
             st.session_state.role_a_prompt = st.text_area(f"{t('instructions')} A", value=st.session_state.role_a_prompt)
         else:
             file_a = st.file_uploader(f"{t('upload')} A (PDF, MD, TXT)", type=["pdf", "md", "txt"], key="file_a")
@@ -546,8 +557,17 @@ with st.sidebar:
         st.subheader(t("persona_b"))
         st.session_state.role_b_name = st.text_input(f"{t('name')} B", value=st.session_state.role_b_name)
         st.session_state.provider_b = st.selectbox(f"{t('provider_select')} B:", select_options, index=select_options.index(st.session_state.provider_b) if st.session_state.provider_b in select_options else 0)
-        st.session_state.input_type_b = st.radio(f"{t('input_type')} B:", [t("manual"), t("upload")], index=0 if st.session_state.input_type_b == "Ručně" else 1)
-        if st.session_state.input_type_b == t("manual"):
+        
+        # OPRAVENÝ PŘEPÍNAČ PRO OSOBNOST B
+        input_b_opts = ["manual", "upload"]
+        input_b_idx = 0 if st.session_state.get("input_type_b", "manual") in ["manual", "Ručně"] else 1
+        st.session_state.input_type_b = st.radio(
+            f"{t('input_type')} B:", 
+            options=input_b_opts, 
+            format_func=lambda x: t(x), 
+            index=input_b_idx
+        )
+        if st.session_state.input_type_b == "manual":
             st.session_state.role_b_prompt = st.text_area(f"{t('instructions')} B", value=st.session_state.role_b_prompt)
         else:
             file_b = st.file_uploader(f"{t('upload')} B (PDF, MD, TXT)", type=["pdf", "md", "txt"], key="file_b")
@@ -617,16 +637,24 @@ elif app_mode == t("nav_arena"):
     st.title(t("debate_title"))
     
     if not available_providers:
-        st.error(t("no_key_error"))
+        st.warning(t("no_key_error"))
     else:
         st.info(t("tip"))
 
     st.caption(t("debate_caption"))
 
     # --- ZADÁNÍ TÉMATU ---
-    st.session_state.topic_input_type = st.radio(t("topic_type"), [t("manual"), t("upload")], index=0 if st.session_state.topic_input_type == "Ručně" else 1)
+    # OPRAVENÝ PŘEPÍNAČ PRO TÉMA
+    topic_opts = ["manual", "upload"]
+    topic_idx = 0 if st.session_state.get("topic_input_type", "manual") in ["manual", "Ručně"] else 1
+    st.session_state.topic_input_type = st.radio(
+        t("topic_type"), 
+        options=topic_opts, 
+        format_func=lambda x: t(x), 
+        index=topic_idx
+    )
     
-    if st.session_state.topic_input_type == t("manual"):
+    if st.session_state.topic_input_type == "manual":
         st.session_state.topic_input = st.text_input(t("topic_text"), value=st.session_state.topic_input, placeholder="...")
         topic = st.session_state.topic_input
         st.session_state.topic_document_text = ""
@@ -654,7 +682,7 @@ elif app_mode == t("nav_arena"):
         if not topic.strip() or not st.session_state.role_a_name.strip() or not st.session_state.role_a_prompt.strip() or not st.session_state.role_b_name.strip() or not st.session_state.role_b_prompt.strip():
             st.error("Please fill in the topic and settings for both personas!")
             st.stop()
-        if st.session_state.topic_input_type == t("upload") and not st.session_state.topic_document_text:
+        if st.session_state.topic_input_type == "upload" and not st.session_state.topic_document_text:
             st.error("Please upload at least one document!")
             st.stop()
 
@@ -730,7 +758,7 @@ elif app_mode == t("nav_arena"):
                 raise Exception("All Mistral models failed.")
 
         # --- GENEROVÁNÍ SOUHRNU DOKUMENTŮ ---
-        if st.session_state.topic_input_type == t("upload") and st.session_state.topic_document_text:
+        if st.session_state.topic_input_type == "upload" and st.session_state.topic_document_text:
             with st.spinner("Analyzing documents and preparing a summary..."):
                 summary_prompt = "Jsi expert na analýzu dokumentů. Z následujících textů vytvoř strukturovaný souhrn. Uveď hlavní teze, klíčová fakta a přímé citace, které by měly být použity v diskuzi." if st.session_state.lang == "cs" else "You are a document analysis expert. Create a structured summary from the following texts. State the main theses, key facts, and direct quotes that should be used in the debate."
                 try:
