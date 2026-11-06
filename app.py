@@ -496,14 +496,25 @@ def render_critique_ui(available_providers_list):
 
 # --- 3. POSTRANNÍ PANEL ---
 with st.sidebar:
-    # Vytvoříme 4 sloupce: prázdný - CZ - GB - prázdný
-    # Tím se vlajky vycentrují doprostřed a nastavením width=35 je zmenšíme
-    c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
-    with c2:
-        st.image("cz.png", width=35)
-    with c3:
-        st.image("gb.png", width=35)
-    
+    # Pomocná funkce pro přečtení obrázku (zajistí, že se obrázek načte správně)
+    def get_image_base64(path):
+        try:
+            with open(path, "rb") as f:
+                return base64.b64encode(f.read()).decode()
+        except Exception:
+            return ""
+
+    cz_b64 = get_image_base64("cz.png")
+    gb_b64 = get_image_base64("gb.png")
+
+    # Vykreslení vlajek pomocí HTML (dokonalé vycentrování a pevná šířka 30px)
+    st.markdown(f"""
+        <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 10px; margin-bottom: 20px;">
+            <img src="data:image/png;base64,{cz_b64}" width="30" style="border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+            <img src="data:image/png;base64,{gb_b64}" width="30" style="border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+        </div>
+    """, unsafe_allow_html=True)
+
     # Zbytek kódu pro přepínač jazyků
     lang_choice = st.radio(t("lang_name"), ["Čeština", "English"], index=0 if st.session_state.lang == "cs" else 1, horizontal=True)
     st.session_state.lang = "cs" if "Čeština" in lang_choice else "en"
