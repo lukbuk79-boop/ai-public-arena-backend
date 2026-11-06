@@ -495,16 +495,16 @@ def render_critique_ui(available_providers_list):
 
 
 # --- 3. POSTRANNÍ PANEL ---
-# --- 3. POSTRANNÍ PANEL ---
 with st.sidebar:
-    # Zobrazení vlajek pomocí nativních Streamlit komponent
-    col1, col2 = st.columns(2)
-    with col1:
-        st.image("cz.png", use_container_width=True)
-    with col2:
-        st.image("gb.png", use_container_width=True)
+    # Vytvoříme 4 sloupce: prázdný - CZ - GB - prázdný
+    # Tím se vlajky vycentrují doprostřed a nastavením width=35 je zmenšíme
+    c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
+    with c2:
+        st.image("cz.png", width=35)
+    with c3:
+        st.image("gb.png", width=35)
     
-    # Z přepínače jsme odstranili emoji
+    # Zbytek kódu pro přepínač jazyků
     lang_choice = st.radio(t("lang_name"), ["Čeština", "English"], index=0 if st.session_state.lang == "cs" else 1, horizontal=True)
     st.session_state.lang = "cs" if "Čeština" in lang_choice else "en"
     
