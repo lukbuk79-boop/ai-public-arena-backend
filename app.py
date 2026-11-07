@@ -1165,4 +1165,140 @@ elif app_mode == t("nav_arena"):
             st.session_state.full_history.append((st.session_state.role_b_name, resp_b, mod_b))
 
             if r < st.session_state.max_rounds - 1:
-                time.sleep(get_delay_for_provider(st.session_state.provider
+                time.sleep(get_delay_for_provider(st.session_state.provider_a))
+                context_a = debate_context_intro + "Context:\n" + "\n".join([f"{s}: {t}" for s, t, m in st.session_state.full_history[-memory_limit:]]) + (f"\nNow it's your turn ({st.session_state.role_a_name}). React to your opponent's arguments." if lang == "en" else f"\nNyní jsi na řadě ty ({st.session_state.role_a_name}). Reaguj na argumenty oponenta.")
+                with chat_container.chat_message("user", avatar="🔵"):
+                    st.markdown(f"**{st.session_state.role_a_name}:**")
+                    with st.spinner("Reacting..."):
+                        resp_a, mod_a = call_ai(enhanced_prompt_a, context_a, st.session_state.provider_a)
+                    st.markdown(resp_a)
+                    st.caption(f"🤖 `{mod_a}`")
+                st.session_state.full_history.append((st.session_state.role_a_name, resp_a, mod_a))
+
+        progress_bar.progress(1.0)
+        time.sleep(get_delay_for_provider(st.session_state.provider_mod))
+
+        if lang == "cs":
+            summary_context = (
+                f"TÉMA: '{st.session_state.current_topic}'\n\n"
+                f"SOUHRN DOKUMENTŮ: {st.session_state.topic_summary}\n\n"
+                "PRŮBĚH DEBATY:\n"
+                + "\n".join([f"{s}: {t}" for s, t, m in st.session_state.full_history])
+            )
+        else:
+            summary_context = (
+                f"TOPIC: '{st.session_state.current_topic}'\n\n"
+                f"DOCUMENT SUMMARY: {st.session_state.topic_summary}\n\n"
+                "DEBATE TRANSCRIPT:\n"
+                + "\n".join([f"{s}: {t}" for s, t, m in st.session_state.full_history])
+            )
+        base_judge_prompt = (
+            "Jsi přísný a nestranný rozhodčí. Zhodnoť průběh debaty. NEJDŘÍVE SI PEČLIVĚ PŘEČTI 'ZADÁNÍ TÉMATU'. Pokud zadání obsahuje konkrétní požadavek na formu rozhodnutí, MUSÍŠ tento pokyn bezpodmínečně dodržet. Vždy jasně vysvětli, proč jsi se takto rozhodl." 
+            if lang == "cs" else
+            "You are a strict and impartial judge. Evaluate the debate. FIRST, CAREFULLY READ THE 'TOPIC'. If the topic contains a specific requirement for the decision format, YOU MUST strictly follow it. Always clearly explain why you decided this way."
+        )
+        judge_prompt = build_judge_prompt(base_judge_prompt, st.session_state.debate_goal, lang)
+
+        with st.spinner("Judge is evaluating arguments..."):
+            try:
+                final_sum, mod_mod = call_ai(judge_prompt, summary_context, st.session_state.provider_mod)
+            except Exception as e:
+                final_sum = f"Judge could not comment. Error: {e}"
+                mod_mod = "API Error"
+
+        st.session_state.final_summary = final_sum
+        st.session_state.model_mod_used = mod_mod
+        st.session_state.debate_active = True
+
+        with chat_container.chat_message("assistant", avatar="⚖️"):
+            st.markdown(f"**{t('judge')}:**")
+            st.markdown(final_sum)
+            st.caption(f"🤖 `{mod_mod}`")
+
+        with st.spinner("Preparing files and uploading to R2..."):
+            md_history = ""
+            for sender, text, model in st.session_state.full_history:
+                md_history += f"### {sender}\n{text}\n\n<small>Model: {model}</small>\n\n---\n\n"
+
+            md_content = f"# Debate: {st.session_state.current_topic}\n\n**Date:** {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+            if st.session_state.topic_summary:
+                md_content += f"## Summary\n\n{st.session_state.topic_summary}\n\n---\n\n"
+            md_content += md_history + f"### {t('judge')}\n{final_sum}\n\n<small>Model: {mod_mod}</small>"
+
+            st.session_state.md_content = md_content
+            st.session_state.pdf_bytes = generate_pdf(st.session_state.md_content)
+
+            try:
+                counter = get_next_counter()
+            except Exception: counter = f"{random.randint(10000, 99999):05d}"
+
+            filename_base = generate_filename_from_topic(st.session_state.current_topic, call_ai, available_providers)
+            full_base = f"{counter}_{filename_base}"
+            st.session_state.file_base_name = full_base
+
+            try:
+                s3 = get_r2_client()
+                bucket = st.secrets["R2_BUCKET_NAME"]
+                s3.put_object(Bucket=bucket, Key=f"markdown/{full_base}.md", Body=st.session_state.md_content.encode("utf-8"), ContentType="text/markdown")
+                s3.put_object(Bucket=bucket, Key=f"pdf/{full_base}.pdf", Body=st.session_state.pdf_bytes, ContentType="application/pdf")
+                st.success(f"✅ Files uploaded to Cloudflare R2.")
+            except Exception as e:
+                st.error(f"❌ R2 Upload failed: {e}")
+
+        st.divider()
+        render_downloads()
+        render_critique_ui(available_providers)
+
+        st.divider()
+        if st.button(t("new_debate"), use_container_width=True):
+            st.session_state.debate_active = False
+            st.session_state.full_history = []
+            st.session_state.final_summary = ""
+            st.session_state.md_content = ""
+            st.session_state.pdf_bytes = b""
+            st.session_state.file_base_name = "debata"
+            st.session_state.topic_document_text = ""
+            st.session_state.topic_summary = ""
+            st.session_state.uploaded_files_hash = ""
+            reset_critique_state()
+            st.rerun()
+
+        st.stop()
+
+    if st.session_state.debate_active:
+        st.divider()
+        st.markdown(f"### 📌 Topic: *{st.session_state.current_topic}*")
+
+        if st.session_state.topic_summary:
+            with st.expander("📄 Show document summary", expanded=False):
+                st.markdown(st.session_state.topic_summary)
+
+        for i, (sender, text, model_used) in enumerate(st.session_state.full_history):
+            avatar = "🔵" if i % 2 == 0 else "🔴"
+            role = "user" if i % 2 == 0 else "assistant"
+            with st.chat_message(role, avatar=avatar):
+                st.markdown(f"**{sender}:**\n\n{text}")
+                st.caption(f"🤖 `{model_used}`")
+
+        with st.chat_message("assistant", avatar="⚖️"):
+            st.markdown(f"**{t('judge')}:**")
+            st.markdown(st.session_state.final_summary)
+            st.caption(f"🤖 `{st.session_state.model_mod_used}`")
+
+        st.divider()
+        render_downloads()
+        render_critique_ui(available_providers)
+
+        st.divider()
+        if st.button(t("new_debate"), use_container_width=True):
+            st.session_state.debate_active = False
+            st.session_state.full_history = []
+            st.session_state.final_summary = ""
+            st.session_state.md_content = ""
+            st.session_state.pdf_bytes = b""
+            st.session_state.file_base_name = "debata"
+            st.session_state.topic_document_text = ""
+            st.session_state.topic_summary = ""
+            st.session_state.uploaded_files_hash = ""
+            reset_critique_state()
+            st.rerun()
