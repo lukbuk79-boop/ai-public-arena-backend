@@ -3,7 +3,6 @@ import random
 from utils.config import t, PRESET_KEYS, TEMPERAMENT_KEYS, EXPERTISE_KEYS, LENGTH_KEYS, GOAL_KEYS, RULE_KEYS, MODE_KEYS, PRESETS
 from utils.pdf_export import extract_text_from_file
 
-# Tyto funkce zajistí, že se hodnota uloží okamžitě při kliknutí
 def update_state(widget_key, state_key):
     st.session_state[state_key] = st.session_state[widget_key]
 
@@ -17,8 +16,13 @@ def apply_preset_callback():
     st.session_state.debate_rules = list(cfg["debate_rules"])
 
 def randomize_persona(prefix):
-    st.session_state[f"temperament_{prefix}"] = random.choice(TEMPERAMENT_KEYS)
-    st.session_state[f"expertise_{prefix}"] = random.choice(EXPERTISE_KEYS)
+    # OPRAVA: Změníme hodnotu jak v paměti, tak v klíči, který je svázán s widgetem
+    new_t = random.choice(TEMPERAMENT_KEYS)
+    new_e = random.choice(EXPERTISE_KEYS)
+    st.session_state[f"temperament_{prefix}"] = new_t
+    st.session_state[f"expertise_{prefix}"] = new_e
+    st.session_state[f"w_temperament_{prefix}"] = new_t
+    st.session_state[f"w_expertise_{prefix}"] = new_e
 
 def go_next():
     st.session_state.setup_step += 1
@@ -40,19 +44,15 @@ select_options = available_providers if available_providers else ["(Zadejte klí
 
 st.title(t("nav_setup"))
 
-# --- KROK 1 ---
 if st.session_state.setup_step == 1:
     st.subheader(t("setup_step1"))
-    
     st.radio(t("mode_label"), options=MODE_KEYS, format_func=lambda k: t(f"mode_{k}"), index=MODE_KEYS.index(st.session_state.debate_mode), key="w_mode", on_change=update_state, args=("w_mode", "debate_mode"))
-    
     st.divider()
     st.selectbox(t("preset_label"), options=PRESET_KEYS, format_func=lambda k: t(f"preset_{k}"), index=PRESET_KEYS.index(st.session_state.preset_select), key="w_preset", on_change=apply_preset_callback, help=t("preset_help"))
     st.selectbox(t("response_length_label"), options=LENGTH_KEYS, format_func=lambda k: t(f"length_{k}"), index=LENGTH_KEYS.index(st.session_state.response_length), key="w_length", on_change=update_state, args=("w_length", "response_length"))
     st.radio(t("debate_goal_label"), options=GOAL_KEYS, format_func=lambda k: t(f"goal_{k}"), index=GOAL_KEYS.index(st.session_state.debate_goal), key="w_goal", on_change=update_state, args=("w_goal", "debate_goal"))
     st.multiselect(t("rules_label"), options=RULE_KEYS, default=st.session_state.debate_rules, format_func=lambda k: t(f"rule_{k}"), key="w_rules", on_change=update_state, args=("w_rules", "debate_rules"))
 
-# --- KROK 2 ---
 elif st.session_state.setup_step == 2:
     st.subheader(t("setup_step2"))
     mode = st.session_state.debate_mode
@@ -133,12 +133,9 @@ elif st.session_state.setup_step == 2:
         st.slider(t("rounds"), min_value=2, max_value=30, value=st.session_state.max_rounds, key="w_max_rounds", on_change=update_state, args=("w_max_rounds", "max_rounds"))
         st.slider(t("memory_limit_label"), min_value=2, max_value=30, value=st.session_state.memory_limit, key="w_memory_limit", on_change=update_state, args=("w_memory_limit", "memory_limit"))
 
-# --- KROK 3 ---
 elif st.session_state.setup_step == 3:
     st.subheader(t("setup_step3"))
-    
     st.radio(t("topic_type"), options=["manual", "upload"], format_func=lambda x: t(x), index=0 if st.session_state.topic_input_type == "manual" else 1, key="w_topic_input_type", on_change=update_state, args=("w_topic_input_type", "topic_input_type"))
-    
     if st.session_state.topic_input_type == "manual":
         st.text_input(t("topic_text"), value=st.session_state.topic_input, key="w_topic_input", on_change=update_state, args=("w_topic_input", "topic_input"))
     else:
