@@ -19,6 +19,15 @@ from utils.storage import get_next_counter, get_r2_client, save_critique_result,
 
 init_state()
 
+# --- NOVÉ: Vynucení výchozí volby "Ručně" ---
+# Tímto zajistíme, že pokud se aplikace načte poprvé, nebo se ztratí stav, 
+# bude výchozí volba vždy "Ručně" a ne "Nahrát soubor".
+if "input_type_a" not in st.session_state: st.session_state.input_type_a = "Ručně"
+if "input_type_b" not in st.session_state: st.session_state.input_type_b = "Ručně"
+if "input_type_c" not in st.session_state: st.session_state.input_type_c = "Ručně"
+if "topic_input_type" not in st.session_state: st.session_state.topic_input_type = "Ručně"
+# ---------------------------------------------
+
 def render_downloads():
     base_name = st.session_state.get("file_base_name", "debata")
     md_b64 = base64.b64encode(st.session_state.md_content.encode('utf-8')).decode('utf-8')
