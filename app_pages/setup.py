@@ -3,33 +3,15 @@ import random
 from utils.config import t, PRESET_KEYS, TEMPERAMENT_KEYS, EXPERTISE_KEYS, LENGTH_KEYS, GOAL_KEYS, RULE_KEYS, MODE_KEYS, PRESETS
 from utils.pdf_export import extract_text_from_file
 
-STEP_1_KEYS = ["debate_mode", "preset_select", "debate_rules", "debate_goal", "response_length"]
-STEP_2_KEYS = [
-    "role_a_name", "role_a_prompt", "provider_a", "temperament_a", "expertise_a", "input_type_a", 
-    "role_b_name", "role_b_prompt", "provider_b", "temperament_b", "expertise_b", "input_type_b",
-    "role_c_name", "role_c_prompt", "provider_c", "temperament_c", "expertise_c", "input_type_c",
-    "provider_mod", "max_rounds", "memory_limit"
-]
-STEP_3_KEYS = ["topic_input_type", "topic_input", "topic_document_text", "uploaded_files_hash"]
-
-def save_step(step):
-    if step == 1: keys = STEP_1_KEYS
-    elif step == 2: keys = STEP_2_KEYS
-    elif step == 3: keys = STEP_3_KEYS
-    else: return
-    
-    if "saved_steps" not in st.session_state:
-        st.session_state.saved_steps = {}
-    
-    st.session_state.saved_steps[step] = {k: st.session_state.get(k) for k in keys if k in st.session_state}
+# Tyto funkce zajistí, že se hodnota uloží okamžitě při kliknutí
+def update_state(widget_key, state_key):
+    st.session_state[state_key] = st.session_state[widget_key]
 
 def apply_preset_callback():
-    preset = st.session_state.preset_select
+    preset = st.session_state.w_preset
+    st.session_state.preset_select = preset
     if preset == "custom" or preset not in PRESETS: return
     cfg = PRESETS[preset]
-    st.session_state.temperament_a = cfg["temperament_a"]; st.session_state.expertise_a = cfg["expertise_a"]
-    st.session_state.temperament_b = cfg["temperament_b"]; st.session_state.expertise_b = cfg["expertise_b"]
-    st.session_state.temperament_c = cfg["temperament_a"]; st.session_state.expertise_c = cfg["expertise_a"]
     st.session_state.response_length = cfg["response_length"]
     st.session_state.debate_goal = cfg["debate_goal"]
     st.session_state.debate_rules = list(cfg["debate_rules"])
@@ -39,13 +21,15 @@ def randomize_persona(prefix):
     st.session_state[f"expertise_{prefix}"] = random.choice(EXPERTISE_KEYS)
 
 def go_next():
-    save_step(st.session_state.setup_step)
     st.session_state.setup_step += 1
+    for k in list(st.session_state.keys()):
+        if k.startswith("w_"): del st.session_state[k]
     st.rerun()
 
 def go_back():
-    save_step(st.session_state.setup_step)
     st.session_state.setup_step -= 1
+    for k in list(st.session_state.keys()):
+        if k.startswith("w_"): del st.session_state[k]
     st.rerun()
 
 available_providers = []
@@ -56,15 +40,19 @@ select_options = available_providers if available_providers else ["(Zadejte klí
 
 st.title(t("nav_setup"))
 
+# --- KROK 1 ---
 if st.session_state.setup_step == 1:
     st.subheader(t("setup_step1"))
-    st.radio(t("mode_label"), options=MODE_KEYS, format_func=lambda k: t(f"mode_{k}"), key="debate_mode")
+    
+    st.radio(t("mode_label"), options=MODE_KEYS, format_func=lambda k: t(f"mode_{k}"), index=MODE_KEYS.index(st.session_state.debate_mode), key="w_mode", on_change=update_state, args=("w_mode", "debate_mode"))
+    
     st.divider()
-    st.selectbox(t("preset_label"), options=PRESET_KEYS, format_func=lambda k: t(f"preset_{k}"), key="preset_select", on_change=apply_preset_callback, help=t("preset_help"))
-    st.selectbox(t("response_length_label"), options=LENGTH_KEYS, format_func=lambda k: t(f"length_{k}"), key="response_length")
-    st.radio(t("debate_goal_label"), options=GOAL_KEYS, format_func=lambda k: t(f"goal_{k}"), key="debate_goal")
-    st.multiselect(t("rules_label"), options=RULE_KEYS, format_func=lambda k: t(f"rule_{k}"), key="debate_rules")
+    st.selectbox(t("preset_label"), options=PRESET_KEYS, format_func=lambda k: t(f"preset_{k}"), index=PRESET_KEYS.index(st.session_state.preset_select), key="w_preset", on_change=apply_preset_callback, help=t("preset_help"))
+    st.selectbox(t("response_length_label"), options=LENGTH_KEYS, format_func=lambda k: t(f"length_{k}"), index=LENGTH_KEYS.index(st.session_state.response_length), key="w_length", on_change=update_state, args=("w_length", "response_length"))
+    st.radio(t("debate_goal_label"), options=GOAL_KEYS, format_func=lambda k: t(f"goal_{k}"), index=GOAL_KEYS.index(st.session_state.debate_goal), key="w_goal", on_change=update_state, args=("w_goal", "debate_goal"))
+    st.multiselect(t("rules_label"), options=RULE_KEYS, default=st.session_state.debate_rules, format_func=lambda k: t(f"rule_{k}"), key="w_rules", on_change=update_state, args=("w_rules", "debate_rules"))
 
+# --- KROK 2 ---
 elif st.session_state.setup_step == 2:
     st.subheader(t("setup_step2"))
     mode = st.session_state.debate_mode
@@ -75,14 +63,18 @@ elif st.session_state.setup_step == 2:
     if st.session_state.provider_mod not in select_options: st.session_state.provider_mod = select_options[0]
 
     st.markdown(f"**{t('persona_a')} (AI)**")
-    st.text_input(f"{t('name')} A", key="role_a_name")
-    st.selectbox(f"{t('provider_select')} A:", select_options, key="provider_a")
+    st.text_input(f"{t('name')} A", value=st.session_state.role_a_name, key="w_role_a_name", on_change=update_state, args=("w_role_a_name", "role_a_name"))
+    st.selectbox(f"{t('provider_select')} A:", select_options, index=select_options.index(st.session_state.provider_a), key="w_provider_a", on_change=update_state, args=("w_provider_a", "provider_a"))
+    
     col_t, col_e = st.columns(2)
-    with col_t: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), key="temperament_a")
-    with col_e: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="expertise_a")
+    with col_t: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), index=TEMPERAMENT_KEYS.index(st.session_state.temperament_a), key="w_temperament_a", on_change=update_state, args=("w_temperament_a", "temperament_a"))
+    with col_e: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), index=EXPERTISE_KEYS.index(st.session_state.expertise_a), key="w_expertise_a", on_change=update_state, args=("w_expertise_a", "expertise_a"))
+    
     st.button(t("random_button"), key="random_a", on_click=randomize_persona, args=("a",), use_container_width=True)
-    st.radio(f"{t('input_type')} A:", options=["manual", "upload"], format_func=lambda x: t(x), key="input_type_a")
-    if st.session_state.input_type_a == "manual": st.text_area(f"{t('instructions')} A", key="role_a_prompt")
+    
+    st.radio(f"{t('input_type')} A:", options=["manual", "upload"], format_func=lambda x: t(x), index=0 if st.session_state.input_type_a == "manual" else 1, key="w_input_type_a", on_change=update_state, args=("w_input_type_a", "input_type_a"))
+    if st.session_state.input_type_a == "manual": 
+        st.text_area(f"{t('instructions')} A", value=st.session_state.role_a_prompt, key="w_role_a_prompt", on_change=update_state, args=("w_role_a_prompt", "role_a_prompt"))
     else:
         file_a = st.file_uploader(f"{t('upload')} A", type=["pdf", "md", "txt"], key="file_a")
         if file_a: st.session_state.role_a_prompt = extract_text_from_file(file_a)
@@ -91,17 +83,21 @@ elif st.session_state.setup_step == 2:
 
     if mode in ["ai_vs_human", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
         st.markdown(f"**{t('persona_b')} (Člověk)**")
-        st.text_input(t("human_name"), key="role_b_name")
+        st.text_input(t("human_name"), value=st.session_state.role_b_name, key="w_role_b_name", on_change=update_state, args=("w_role_b_name", "role_b_name"))
     else:
         st.markdown(f"**{t('persona_b')} (AI)**")
-        st.text_input(f"{t('name')} B", key="role_b_name")
-        st.selectbox(f"{t('provider_select')} B:", select_options, key="provider_b")
+        st.text_input(f"{t('name')} B", value=st.session_state.role_b_name, key="w_role_b_name", on_change=update_state, args=("w_role_b_name", "role_b_name"))
+        st.selectbox(f"{t('provider_select')} B:", select_options, index=select_options.index(st.session_state.provider_b), key="w_provider_b", on_change=update_state, args=("w_provider_b", "provider_b"))
+        
         col_t2, col_e2 = st.columns(2)
-        with col_t2: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), key="temperament_b")
-        with col_e2: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="expertise_b")
+        with col_t2: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), index=TEMPERAMENT_KEYS.index(st.session_state.temperament_b), key="w_temperament_b", on_change=update_state, args=("w_temperament_b", "temperament_b"))
+        with col_e2: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), index=EXPERTISE_KEYS.index(st.session_state.expertise_b), key="w_expertise_b", on_change=update_state, args=("w_expertise_b", "expertise_b"))
+        
         st.button(t("random_button"), key="random_b", on_click=randomize_persona, args=("b",), use_container_width=True)
-        st.radio(f"{t('input_type')} B:", options=["manual", "upload"], format_func=lambda x: t(x), key="input_type_b")
-        if st.session_state.input_type_b == "manual": st.text_area(f"{t('instructions')} B", key="role_b_prompt")
+        st.radio(f"{t('input_type')} B:", options=["manual", "upload"], format_func=lambda x: t(x), index=0 if st.session_state.input_type_b == "manual" else 1, key="w_input_type_b", on_change=update_state, args=("w_input_type_b", "input_type_b"))
+        
+        if st.session_state.input_type_b == "manual": 
+            st.text_area(f"{t('instructions')} B", value=st.session_state.role_b_prompt, key="w_role_b_prompt", on_change=update_state, args=("w_role_b_prompt", "role_b_prompt"))
         else:
             file_b = st.file_uploader(f"{t('upload')} B", type=["pdf", "md", "txt"], key="file_b")
             if file_b: st.session_state.role_b_prompt = extract_text_from_file(file_b)
@@ -110,41 +106,47 @@ elif st.session_state.setup_step == 2:
         st.divider()
         if mode == "ai_vs_ai_vs_human":
             st.markdown(f"**{t('persona_c')} (Člověk)**")
-            st.text_input(t("human_name"), key="role_c_name")
+            st.text_input(t("human_name"), value=st.session_state.role_c_name, key="w_role_c_name", on_change=update_state, args=("w_role_c_name", "role_c_name"))
         else:
             st.markdown(f"**{t('persona_c')} (AI)**")
-            st.text_input(f"{t('name')} C", key="role_c_name")
-            st.selectbox(f"{t('provider_select')} C:", select_options, key="provider_c")
+            st.text_input(f"{t('name')} C", value=st.session_state.role_c_name, key="w_role_c_name", on_change=update_state, args=("w_role_c_name", "role_c_name"))
+            st.selectbox(f"{t('provider_select')} C:", select_options, index=select_options.index(st.session_state.provider_c), key="w_provider_c", on_change=update_state, args=("w_provider_c", "provider_c"))
+            
             col_t3, col_e3 = st.columns(2)
-            with col_t3: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), key="temperament_c")
-            with col_e3: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="expertise_c")
+            with col_t3: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), index=TEMPERAMENT_KEYS.index(st.session_state.temperament_c), key="w_temperament_c", on_change=update_state, args=("w_temperament_c", "temperament_c"))
+            with col_e3: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), index=EXPERTISE_KEYS.index(st.session_state.expertise_c), key="w_expertise_c", on_change=update_state, args=("w_expertise_c", "expertise_c"))
+            
             st.button(t("random_button"), key="random_c", on_click=randomize_persona, args=("c",), use_container_width=True)
-            st.radio(f"{t('input_type')} C:", options=["manual", "upload"], format_func=lambda x: t(x), key="input_type_c")
-            if st.session_state.input_type_c == "manual": st.text_area(f"{t('instructions')} C", key="role_c_prompt")
+            st.radio(f"{t('input_type')} C:", options=["manual", "upload"], format_func=lambda x: t(x), index=0 if st.session_state.input_type_c == "manual" else 1, key="w_input_type_c", on_change=update_state, args=("w_input_type_c", "input_type_c"))
+            
+            if st.session_state.input_type_c == "manual": 
+                st.text_area(f"{t('instructions')} C", value=st.session_state.role_c_prompt, key="w_role_c_prompt", on_change=update_state, args=("w_role_c_prompt", "role_c_prompt"))
             else:
                 file_c = st.file_uploader(f"{t('upload')} C", type=["pdf", "md", "txt"], key="file_c")
                 if file_c: st.session_state.role_c_prompt = extract_text_from_file(file_c)
 
     st.divider()
     st.markdown(f"**{t('moderator')}**")
-    st.selectbox(f"{t('provider_select')}:", select_options, key="provider_mod")
+    st.selectbox(f"{t('provider_select')}:", select_options, index=select_options.index(st.session_state.provider_mod), key="w_provider_mod", on_change=update_state, args=("w_provider_mod", "provider_mod"))
     
     with st.expander(t("advanced_settings")):
-        st.slider(t("rounds"), min_value=2, max_value=30, key="max_rounds")
-        st.slider(t("memory_limit_label"), min_value=2, max_value=30, key="memory_limit")
+        st.slider(t("rounds"), min_value=2, max_value=30, value=st.session_state.max_rounds, key="w_max_rounds", on_change=update_state, args=("w_max_rounds", "max_rounds"))
+        st.slider(t("memory_limit_label"), min_value=2, max_value=30, value=st.session_state.memory_limit, key="w_memory_limit", on_change=update_state, args=("w_memory_limit", "memory_limit"))
 
+# --- KROK 3 ---
 elif st.session_state.setup_step == 3:
     st.subheader(t("setup_step3"))
-    st.radio(t("topic_type"), options=["manual", "upload"], format_func=lambda x: t(x), key="topic_input_type")
+    
+    st.radio(t("topic_type"), options=["manual", "upload"], format_func=lambda x: t(x), index=0 if st.session_state.topic_input_type == "manual" else 1, key="w_topic_input_type", on_change=update_state, args=("w_topic_input_type", "topic_input_type"))
+    
     if st.session_state.topic_input_type == "manual":
-        st.text_input(t("topic_text"), key="topic_input")
-        st.session_state.topic_document_text = ""
+        st.text_input(t("topic_text"), value=st.session_state.topic_input, key="w_topic_input", on_change=update_state, args=("w_topic_input", "topic_input"))
     else:
-        st.text_input(t("topic_file"), key="topic_input")
+        st.text_input(t("topic_file"), value=st.session_state.topic_input, key="w_topic_input", on_change=update_state, args=("w_topic_input", "topic_input"))
         topic_files = st.file_uploader(t("upload_topic"), type=["pdf", "md", "txt"], accept_multiple_files=True)
         if topic_files:
             file_names = "_".join([f.name for f in topic_files])
-            if st.session_state.get("uploaded_files_hash") != file_names:
+            if st.session_state.uploaded_files_hash != file_names:
                 full_text = ""
                 for f in topic_files: full_text += f"--- Document: {f.name} ---\n" + extract_text_from_file(f) + "\n\n"
                 st.session_state.topic_document_text = full_text
