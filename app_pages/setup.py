@@ -11,18 +11,22 @@ STEP_2_KEYS = [
     "provider_mod", "max_rounds", "memory_limit"
 ]
 STEP_3_KEYS = ["topic_input_type", "topic_input", "topic_document_text", "uploaded_files_hash"]
-ALL_KEYS = STEP_1_KEYS + STEP_2_KEYS + STEP_3_KEYS
 
-def save_state(keys):
-    for k in keys:
-        if k in st.session_state:
-            st.session_state[f"cached_{k}"] = st.session_state[k]
+def save_step(step):
+    if step == 1: keys = STEP_1_KEYS
+    elif step == 2: keys = STEP_2_KEYS
+    elif step == 3: keys = STEP_3_KEYS
+    else: return
+    
+    if "saved_steps" not in st.session_state:
+        st.session_state.saved_steps = {}
+    
+    st.session_state.saved_steps[step] = {k: st.session_state.get(k) for k in keys if k in st.session_state}
 
-def load_state(keys):
-    for k in keys:
-        cache_key = f"cached_{k}"
-        if cache_key in st.session_state and st.session_state[cache_key] is not None:
-            st.session_state[k] = st.session_state[cache_key]
+def load_step(step):
+    if "saved_steps" in st.session_state and step in st.session_state.saved_steps:
+        for k, v in st.session_state.saved_steps[step].items():
+            st.session_state[k] = v
 
 def apply_preset_callback():
     preset = st.session_state.preset_select
@@ -34,24 +38,22 @@ def apply_preset_callback():
     st.session_state.response_length = cfg["response_length"]
     st.session_state.debate_goal = cfg["debate_goal"]
     st.session_state.debate_rules = list(cfg["debate_rules"])
-    save_state(STEP_1_KEYS)
 
 def randomize_persona(prefix):
     st.session_state[f"temperament_{prefix}"] = random.choice(TEMPERAMENT_KEYS)
     st.session_state[f"expertise_{prefix}"] = random.choice(EXPERTISE_KEYS)
-    save_state(STEP_2_KEYS)
 
 def go_next():
-    current_step = st.session_state.setup_step
-    if current_step == 1: save_state(STEP_1_KEYS)
-    elif current_step == 2: save_state(STEP_2_KEYS)
+    save_step(st.session_state.setup_step)
     st.session_state.setup_step += 1
+    load_step(st.session_state.setup_step)
+    st.rerun()
 
 def go_back():
-    current_step = st.session_state.setup_step
-    if current_step == 2: save_state(STEP_2_KEYS)
-    elif current_step == 3: save_state(STEP_3_KEYS)
+    save_step(st.session_state.setup_step)
     st.session_state.setup_step -= 1
+    load_step(st.session_state.setup_step)
+    st.rerun()
 
 available_providers = []
 if st.session_state.gemini_key.strip(): available_providers.append("Gemini")
@@ -60,9 +62,6 @@ if st.session_state.nim_key.strip(): available_providers.append("NVIDIA NIM")
 select_options = available_providers if available_providers else ["(Zadejte klíč)"]
 
 st.title(t("nav_setup"))
-
-# Načteme všechny cachované stavy na začátku
-load_state(ALL_KEYS)
 
 if st.session_state.setup_step == 1:
     st.subheader(t("setup_step1"))
@@ -82,7 +81,6 @@ elif st.session_state.setup_step == 2:
     if st.session_state.provider_c not in select_options: st.session_state.provider_c = select_options[0]
     if st.session_state.provider_mod not in select_options: st.session_state.provider_mod = select_options[0]
 
-    # OSOBNOST A (Vždy AI)
     st.markdown(f"**{t('persona_a')} (AI)**")
     st.text_input(f"{t('name')} A", key="role_a_name")
     st.selectbox(f"{t('provider_select')} A:", select_options, key="provider_a")
@@ -94,13 +92,10 @@ elif st.session_state.setup_step == 2:
     if st.session_state.input_type_a == "manual": st.text_area(f"{t('instructions')} A", key="role_a_prompt")
     else:
         file_a = st.file_uploader(f"{t('upload')} A", type=["pdf", "md", "txt"], key="file_a")
-        if file_a: 
-            st.session_state.role_a_prompt = extract_text_from_file(file_a)
-            save_state(STEP_2_KEYS)
+        if file_a: st.session_state.role_a_prompt = extract_text_from_file(file_a)
 
     st.divider()
 
-    # OSOBNOST B
     if mode in ["ai_vs_human", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
         st.markdown(f"**{t('persona_b')} (Člověk)**")
         st.text_input(t("human_name"), key="role_b_name")
@@ -116,11 +111,8 @@ elif st.session_state.setup_step == 2:
         if st.session_state.input_type_b == "manual": st.text_area(f"{t('instructions')} B", key="role_b_prompt")
         else:
             file_b = st.file_uploader(f"{t('upload')} B", type=["pdf", "md", "txt"], key="file_b")
-            if file_b: 
-                st.session_state.role_b_prompt = extract_text_from_file(file_b)
-                save_state(STEP_2_KEYS)
+            if file_b: st.session_state.role_b_prompt = extract_text_from_file(file_b)
 
-    # OSOBNOST C
     if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
         st.divider()
         if mode == "ai_vs_ai_vs_human":
@@ -138,9 +130,7 @@ elif st.session_state.setup_step == 2:
             if st.session_state.input_type_c == "manual": st.text_area(f"{t('instructions')} C", key="role_c_prompt")
             else:
                 file_c = st.file_uploader(f"{t('upload')} C", type=["pdf", "md", "txt"], key="file_c")
-                if file_c: 
-                    st.session_state.role_c_prompt = extract_text_from_file(file_c)
-                    save_state(STEP_2_KEYS)
+                if file_c: st.session_state.role_c_prompt = extract_text_from_file(file_c)
 
     st.divider()
     st.markdown(f"**{t('moderator')}**")
@@ -166,7 +156,6 @@ elif st.session_state.setup_step == 3:
                 for f in topic_files: full_text += f"--- Document: {f.name} ---\n" + extract_text_from_file(f) + "\n\n"
                 st.session_state.topic_document_text = full_text
                 st.session_state.uploaded_files_hash = file_names
-                save_state(STEP_3_KEYS)
                 st.success(f"✅ Načteno {len(topic_files)} dokumentů.")
 
 st.divider()
