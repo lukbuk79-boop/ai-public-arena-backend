@@ -1,12 +1,41 @@
 import streamlit as st
+import streamlit.components.v1 as components
 
 def init_state():
     if "lang" not in st.session_state: st.session_state.lang = "cs"
     
-    # API klíče (vydrží, dokud nezavřete záložku)
+    # Obnovení z URL (pokud tam jsou z prohlížeče)
+    _restored_any_key = False
+    if "g_key" in st.query_params: st.session_state.gemini_key = st.query_params["g_key"]; _restored_any_key = True
+    if "n_key" in st.query_params: st.session_state.nim_key = st.query_params["n_key"]; _restored_any_key = True
+    if "m_key" in st.query_params: st.session_state.mistral_key = st.query_params["m_key"]; _restored_any_key = True
+    if _restored_any_key: st.query_params.clear()
+
     for key in ["gemini_key", "nim_key", "mistral_key"]:
         if key not in st.session_state: st.session_state[key] = ""
 
+    # Načtení z prohlížeče při prvním spuštění
+    if "local_storage_checked" not in st.session_state:
+        if not st.session_state.gemini_key and not st.session_state.nim_key and not st.session_state.mistral_key:
+            components.html("""
+            <script>
+                try {
+                    const g = localStorage.getItem('arena_gemini');
+                    const n = localStorage.getItem('arena_nim');
+                    const m = localStorage.getItem('arena_mistral');
+                    if (g || n || m) {
+                        const url = new URL(window.location.href);
+                        if (g) url.searchParams.set('g_key', g); else url.searchParams.delete('g_key');
+                        if (n) url.searchParams.set('n_key', n); else url.searchParams.delete('n_key');
+                        if (m) url.searchParams.set('m_key', m); else url.searchParams.delete('m_key');
+                        window.location.href = url.toString();
+                    }
+                } catch(e) { console.error("LocalStorage blocked", e); }
+            </script>
+            """, height=0)
+        st.session_state.local_storage_checked = True
+
+    # Paměť pro nastavení (Wizard)
     form_defaults = {
         "debate_mode": "ai_vs_ai", "preset_select": "academic", 
         "response_length": "medium", "debate_goal": "verdict", "debate_rules": ["no_repeat", "cite_sources", "admit_ignorance"],
