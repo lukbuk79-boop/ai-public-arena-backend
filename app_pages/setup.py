@@ -14,6 +14,12 @@ def apply_preset_callback():
     st.session_state.response_length = cfg["response_length"]
     st.session_state.debate_goal = cfg["debate_goal"]
     st.session_state.debate_rules = list(cfg["debate_rules"])
+    st.session_state.temperament_a = cfg["temperament_a"]
+    st.session_state.expertise_a = cfg["expertise_a"]
+    st.session_state.temperament_b = cfg["temperament_b"]
+    st.session_state.expertise_b = cfg["expertise_b"]
+    st.session_state.temperament_c = cfg["temperament_a"]
+    st.session_state.expertise_c = cfg["expertise_a"]
 
 def randomize_persona(prefix):
     new_t = random.choice(TEMPERAMENT_KEYS)
@@ -43,7 +49,6 @@ select_options = available_providers if available_providers else ["(Zadejte klí
 
 st.title(t("nav_setup"))
 
-# --- KROK 1 ---
 if st.session_state.setup_step == 1:
     st.subheader(t("setup_step1"))
     
@@ -60,7 +65,6 @@ if st.session_state.setup_step == 1:
     st.radio(t("debate_goal_label"), options=GOAL_KEYS, format_func=lambda k: t(f"goal_{k}"), key="w_goal", on_change=update_state, args=("w_goal", "debate_goal"))
     st.multiselect(t("rules_label"), options=RULE_KEYS, format_func=lambda k: t(f"rule_{k}"), key="w_rules", on_change=update_state, args=("w_rules", "debate_rules"))
 
-# --- KROK 2 ---
 elif st.session_state.setup_step == 2:
     st.subheader(t("setup_step2"))
     mode = st.session_state.debate_mode
@@ -82,7 +86,6 @@ elif st.session_state.setup_step == 2:
     if "w_max_rounds" not in st.session_state: st.session_state.w_max_rounds = st.session_state.max_rounds
     if "w_memory_limit" not in st.session_state: st.session_state.w_memory_limit = st.session_state.memory_limit
 
-    # OSOBNOST A
     st.markdown(f"**{t('persona_a')} (AI)**")
     st.text_input(f"{t('name')} A", key="w_role_a_name", on_change=update_state, args=("w_role_a_name", "role_a_name"))
     st.selectbox(f"{t('provider_select')} A:", select_options, key="w_provider_a", on_change=update_state, args=("w_provider_a", "provider_a"))
@@ -104,7 +107,6 @@ elif st.session_state.setup_step == 2:
 
     st.divider()
 
-    # OSOBNOST B - OPRAVA PODMÍNKY
     if mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
         st.markdown(f"**{t('persona_b')} (Člověk)**")
         st.text_input(t("human_name"), key="w_role_b_name", on_change=update_state, args=("w_role_b_name", "role_b_name"))
@@ -128,7 +130,6 @@ elif st.session_state.setup_step == 2:
                 st.session_state.w_role_b_prompt = extract_text_from_file(file_b)
                 st.session_state.role_b_prompt = st.session_state.w_role_b_prompt
 
-    # OSOBNOST C - OPRAVA PODMÍNKY
     if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
         st.divider()
         if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
@@ -162,7 +163,6 @@ elif st.session_state.setup_step == 2:
         st.slider(t("rounds"), min_value=2, max_value=30, key="w_max_rounds", on_change=update_state, args=("w_max_rounds", "max_rounds"))
         st.slider(t("memory_limit_label"), min_value=2, max_value=30, key="w_memory_limit", on_change=update_state, args=("w_memory_limit", "memory_limit"))
 
-# --- KROK 3 ---
 elif st.session_state.setup_step == 3:
     st.subheader(t("setup_step3"))
     
@@ -186,7 +186,6 @@ elif st.session_state.setup_step == 3:
                 st.session_state.uploaded_files_hash = file_names
                 st.success(f"✅ Načteno {len(topic_files)} dokumentů.")
 
-# --- NAVIGACE ---
 st.divider()
 col1, col2 = st.columns([1, 1])
 with col1:
