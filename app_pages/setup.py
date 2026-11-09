@@ -16,7 +16,6 @@ def apply_preset_callback():
     st.session_state.debate_rules = list(cfg["debate_rules"])
 
 def randomize_persona(prefix):
-    # OPRAVA: Změníme PŘÍMO klíč, který používá widget. Streamlit to okamžitě překreslí.
     new_t = random.choice(TEMPERAMENT_KEYS)
     new_e = random.choice(EXPERTISE_KEYS)
     st.session_state[f"temperament_{prefix}"] = new_t
@@ -48,7 +47,6 @@ st.title(t("nav_setup"))
 if st.session_state.setup_step == 1:
     st.subheader(t("setup_step1"))
     
-    # Inicializace widget klíčů z hlavní paměti (pokud ještě neexistují)
     if "w_mode" not in st.session_state: st.session_state.w_mode = st.session_state.debate_mode
     if "w_preset" not in st.session_state: st.session_state.w_preset = st.session_state.preset_select
     if "w_length" not in st.session_state: st.session_state.w_length = st.session_state.response_length
@@ -72,7 +70,6 @@ elif st.session_state.setup_step == 2:
     if st.session_state.provider_c not in select_options: st.session_state.provider_c = select_options[0]
     if st.session_state.provider_mod not in select_options: st.session_state.provider_mod = select_options[0]
 
-    # Inicializace widget klíčů
     for p in ["a", "b", "c"]:
         if f"w_role_{p}_name" not in st.session_state: st.session_state[f"w_role_{p}_name"] = st.session_state[f"role_{p}_name"]
         if f"w_provider_{p}" not in st.session_state: st.session_state[f"w_provider_{p}"] = st.session_state[f"provider_{p}"]
@@ -107,8 +104,8 @@ elif st.session_state.setup_step == 2:
 
     st.divider()
 
-    # OSOBNOST B
-    if mode in ["ai_vs_human", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
+    # OSOBNOST B - OPRAVA PODMÍNKY
+    if mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
         st.markdown(f"**{t('persona_b')} (Člověk)**")
         st.text_input(t("human_name"), key="w_role_b_name", on_change=update_state, args=("w_role_b_name", "role_b_name"))
     else:
@@ -131,10 +128,10 @@ elif st.session_state.setup_step == 2:
                 st.session_state.w_role_b_prompt = extract_text_from_file(file_b)
                 st.session_state.role_b_prompt = st.session_state.w_role_b_prompt
 
-    # OSOBNOST C
+    # OSOBNOST C - OPRAVA PODMÍNKY
     if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
         st.divider()
-        if mode == "ai_vs_ai_vs_human":
+        if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
             st.markdown(f"**{t('persona_c')} (Člověk)**")
             st.text_input(t("human_name"), key="w_role_c_name", on_change=update_state, args=("w_role_c_name", "role_c_name"))
         else:
