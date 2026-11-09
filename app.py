@@ -1,7 +1,5 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import base64
-import json
 from utils.state import init_state
 from utils.config import t
 
@@ -30,26 +28,10 @@ with st.sidebar:
     st.divider()
     st.header(t("api_keys"))
     
+    # Jednoduché textové vstupy bez JS
     st.text_input(f"🔑 Gemini {t('api_keys')}:", type="password", key="gemini_key", placeholder="AIzaSy...")
     st.text_input(f"🔑 Mistral {t('api_keys')}:", type="password", key="mistral_key", placeholder="...")
     st.text_input(f"🔑 NVIDIA {t('api_keys')}:", type="password", key="nim_key", placeholder="nvapi-...")
-
-    if st.button(t("save_keys"), use_container_width=True):
-        g = json.dumps(st.session_state.gemini_key)
-        n = json.dumps(st.session_state.nim_key)
-        m = json.dumps(st.session_state.mistral_key)
-        js = f"""
-        <script>
-            try {{
-                const storage = window.parent.localStorage || window.localStorage;
-                storage.setItem('arena_gemini', {g});
-                storage.setItem('arena_nim', {n});
-                storage.setItem('arena_mistral', {m});
-            }} catch(e) {{ console.error("LocalStorage blocked", e); }}
-        </script>
-        """
-        components.html(js, height=0)
-        st.success(t("save_keys_success"))
 
     st.divider()
     st.caption("© 2026 Lukáš Buchvald")
