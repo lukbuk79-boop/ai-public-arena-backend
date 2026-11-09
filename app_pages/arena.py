@@ -19,7 +19,7 @@ from utils.storage import get_next_counter, get_r2_client, save_critique_result,
 
 init_state()
 
-# Vynucení výchozí volby "Ručně" (pokud se to nenačetlo ze setupu)
+# Vynucení výchozí volby "Ručně"
 if "input_type_a" not in st.session_state: st.session_state.input_type_a = "Ručně"
 if "input_type_b" not in st.session_state: st.session_state.input_type_b = "Ručně"
 if "input_type_c" not in st.session_state: st.session_state.input_type_c = "Ručně"
@@ -111,7 +111,25 @@ def render_critique_ui(available_providers_list):
         st.markdown(f'<div style="display:flex; gap:10px; margin:10px 0;"><a href="data:application/octet-stream;base64,{md_b64}" download="{st.session_state.critique_base}.md" style="flex:1; text-align:center; padding:10px; background:#f0f2f6; color:#31333f; text-decoration:none; border-radius:5px; border:1px solid #d6d6d6;">{t("dl_critique_md")}</a><a href="data:application/pdf;base64,{pdf_b64}" download="{st.session_state.critique_base}.pdf" style="flex:1; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:5px;">{t("dl_critique_pdf")}</a></div>', unsafe_allow_html=True)
         with st.expander(t("preview_critique"), expanded=False): st.markdown(st.session_state.critique_md)
 
-# NOVÁ FUNKCE: Generování Souhrnu
+
+# Pomocná funkce pro uložení souhrnu (aby se kód neopakoval)
+def save_summary_to_state_and_r2(summary_text, model_name="External AI"):
+    st.session_state.summary_md = f"# Souhrn debaty: {st.session_state.current_topic}\n\n**Datum:** {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n{summary_text}\n\n<small>Použitý model: {model_name}</small>"
+    st.session_state.summary_pdf = generate_pdf(st.session_state.summary_md)
+    
+    counter = st.session_state.get("file_counter", "00000")
+    base = f"{counter}_souhrn"
+    st.session_state.summary_base_name = base
+    
+    try:
+        s3 = get_r2_client()
+        bucket = st.secrets["R2_BUCKET_NAME"]
+        s3.put_object(Bucket=bucket, Key=f"summary/{base}.md", Body=st.session_state.summary_md.encode("utf-8"))
+        s3.put_object(Bucket=bucket, Key=f"summary/{base}.pdf", Body=st.session_state.summary_pdf)
+        return True, base
+    except Exception as e:
+        return False, str(e)
+
 def render_summary_ui(available_providers_list):
     if not st.session_state.md_content: return
     
@@ -119,70 +137,101 @@ def render_summary_ui(available_providers_list):
     st.subheader("📝 Souhrn debaty")
     st.caption("Vytvořte stručný souhrn hlavních shod, neshod a závěru. Pokud je k dispozici nezávislá kritika, bude do souhrnu automaticky zahrnuta.")
     
-    if not available_providers_list:
-        st.warning("Pro generování souhrnu musíte mít v menu zadaný alespoň jeden API klíč.")
-        return
-
-    options = available_providers_list
-    selected = st.selectbox("Poskytovatel pro souhrn:", options, key="summary_api_provider")
-    
     has_critique = bool(st.session_state.get("critique_md"))
-    if has_critique:
-        st.info("ℹ️ Nezávislá kritika byla nalezena a bude do souhrnu zahrnuta.")
-    else:
-        st.info("ℹ️ Nezávislá kritika zatím není k dispozici. Souhrn bude vytvořen pouze z průběhu debaty.")
+    
+    tab_api, tab_ext = st.tabs(["Přímé API (automatické)", "Externí AI chat (manuální)"])
 
-    if st.button(f"Generovat souhrn pomocí {selected}", type="primary"):
-        with st.spinner("Vytvářím souhrn debaty..."):
-            sys_prompt = (
-                "Jsi odborník na analýzu a sumarizaci textu. Na základě průběhu debaty vytvoř "
-                "strukturovaný souhrn. Výstup by měl obsahovat tyto sekce:\n"
-                "### Hlavní shody\n"
-                "### Hlavní neshody\n"
-                "### Závěr\n"
-                "Buď stručný, ale výstižný. Zmiň klíčové argumenty diskutujících."
-            )
-            
-            context_text = "PRŮBĚH DEBATY:\n" + st.session_state.md_content
+    # --- ZÁLOŽKA 1: AUTOMATICKÉ API ---
+    with tab_api:
+        if not available_providers_list:
+            st.warning("Pro generování souhrnu musíte mít v menu zadaný alespoň jeden API klíč.")
+        else:
+            selected = st.selectbox("Poskytovatel pro souhrn:", available_providers_list, key="summary_api_provider")
             
             if has_critique:
-                context_text += "\n\nNEZÁVISLÁ KRITIKA:\n" + st.session_state.critique_md
-                sys_prompt += " Zohledni také nezávislou kritiku a zapracuj její postřehy do závěru."
+                st.info("ℹ️ Nezávislá kritika byla nalezena a bude do souhrnu zahrnuta.")
+            else:
+                st.info("ℹ️ Nezávislá kritika zatím není k dispozici. Souhrn bude vytvořen pouze z průběhu debaty.")
 
-            try:
-                # Volání AI s využitím klientů z hlavního běhu
-                ai_kwargs = {
-                    "gemini_client": st.session_state.get("gemini_client"),
-                    "mistral_client": st.session_state.get("mistral_client"),
-                    "nim_client": st.session_state.get("nim_client"),
-                    "gemini_models": st.session_state.get("gemini_models"),
-                    "mistral_models": st.session_state.get("mistral_models")
-                }
-                
-                summary_text, model_used = call_ai(sys_prompt, context_text, selected, **ai_kwargs)
-                
-                st.session_state.summary_md = f"# Souhrn debaty: {st.session_state.current_topic}\n\n**Datum:** {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n{summary_text}\n\n<small>Použitý model: {model_used}</small>"
-                st.session_state.summary_pdf = generate_pdf(st.session_state.summary_md)
-                
-                counter = st.session_state.get("file_counter", "00000")
-                base = f"{counter}_souhrn"
-                st.session_state.summary_base_name = base
-                
-                try:
-                    s3 = get_r2_client()
-                    bucket = st.secrets["R2_BUCKET_NAME"]
-                    s3.put_object(Bucket=bucket, Key=f"summary/{base}.md", Body=st.session_state.summary_md.encode("utf-8"))
-                    s3.put_object(Bucket=bucket, Key=f"summary/{base}.pdf", Body=st.session_state.summary_pdf)
-                    st.success(f"✅ Souhrn vygenerován a uložen na R2 jako `{base}.md` a `{base}.pdf`.")
-                except Exception as e:
-                    st.warning(f"⚠️ Souhrn vygenerován, ale nepodařilo se nahrát na R2: {e}")
+            if st.button(f"Generovat souhrn pomocí {selected}", type="primary"):
+                with st.spinner("Vytvářím souhrn debaty..."):
+                    sys_prompt = (
+                        "Jsi odborník na analýzu a sumarizaci textu. Na základě průběhu debaty vytvoř "
+                        "strukturovaný souhrn. Výstup by měl obsahovat tyto sekce:\n"
+                        "### Hlavní shody\n"
+                        "### Hlavní neshody\n"
+                        "### Závěr\n"
+                        "Buď stručný, ale výstižný. Zmiň klíčové argumenty diskutujících."
+                    )
                     
-            except Exception as e:
-                st.error(f"Chyba při generování souhrnu: {e}")
+                    context_text = "PRŮBĚH DEBATY:\n" + st.session_state.md_content
+                    
+                    if has_critique:
+                        context_text += "\n\nNEZÁVISLÁ KRITIKA:\n" + st.session_state.critique_md
+                        sys_prompt += " Zohledni také nezávislou kritiku a zapracuj její postřehy do závěru."
 
-    # Zobrazení hotového souhrnu a tlačítek pro stažení
+                    try:
+                        ai_kwargs = {
+                            "gemini_client": st.session_state.get("gemini_client"),
+                            "mistral_client": st.session_state.get("mistral_client"),
+                            "nim_client": st.session_state.get("nim_client"),
+                            "gemini_models": st.session_state.get("gemini_models"),
+                            "mistral_models": st.session_state.get("mistral_models")
+                        }
+                        
+                        summary_text, model_used = call_ai(sys_prompt, context_text, selected, **ai_kwargs)
+                        
+                        ok, res = save_summary_to_state_and_r2(summary_text, model_used)
+                        if ok:
+                            st.success(f"✅ Souhrn vygenerován a uložen na R2 jako `{res}.md` a `{res}.pdf`.")
+                        else:
+                            st.warning(f"⚠️ Souhrn vygenerován, ale nepodařilo se nahrát na R2: {res}")
+                            
+                    except Exception as e:
+                        st.error(f"Chyba při generování souhrnu: {e}")
+
+    # --- ZÁLOŽKA 2: EXTERNÍ AI ---
+    with tab_ext:
+        st.info("Zkopírujte si průběh debaty, nechte ho shrnout externí AI (např. ChatGPT) a výsledek vložte sem. Souhrn se uloží na R2.")
+        
+        pdf_b64 = base64.b64encode(st.session_state.pdf_bytes).decode('utf-8') if st.session_state.pdf_bytes else ""
+        st.markdown(f'<a href="data:application/pdf;base64,{pdf_b64}" download="{st.session_state.file_base_name}.pdf" style="display:block; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:6px; font-weight:600; margin-bottom: 15px;">1. Stáhnout PDF s debatou</a>', unsafe_allow_html=True)
+
+        st.markdown("**2. Otevřete váš oblíbený AI chat:**")
+        chats = {
+            "ChatGPT": "https://chatgpt.com/", "Claude": "https://claude.ai/new",
+            "Gemini": "https://gemini.google.com/app", "Perplexity": "https://www.perplexity.ai/",
+            "DeepSeek": "https://chat.deepseek.com/", "Copilot": "https://copilot.microsoft.com/",
+            "Le Chat (Mistral)": "https://chat.mistral.ai/chat"
+        }
+        cols = st.columns(4)
+        for i, (name, url) in enumerate(chats.items()):
+            cols[i % 4].markdown(f'<a href="{url}" target="_blank" style="display:block; text-align:center; padding:8px; background:#e2e8f0; color:#2d3748; text-decoration:none; border-radius:5px; margin-bottom:5px; font-size:14px;">{name}</a>', unsafe_allow_html=True)
+
+        st.markdown("**3. Použijte tento prompt (vložte ho i s PDF):**")
+        prompt_for_ext = f"Přečti přiložené PDF s diskuzí na téma: '{st.session_state.current_topic}'. Vytvoř strukturovaný souhrn s těmito sekcemi: Hlavní shody, Hlavní neshody, Závěr. Buď stručný a výstižný."
+        if has_critique:
+            prompt_for_ext += " Zohledni také nezávislou kritiku, která je součástí PDF, a zapracuj její postřehy do závěru."
+        st.code(prompt_for_ext, language=None)
+
+        st.markdown("**4. Vložte výsledný souhrn sem:**")
+        pasted_summary = st.text_area("Výsledek ze externí AI:", height=150, key="summary_pasted_ext", label_visibility="collapsed", placeholder="Sem vložte text souhrnu...")
+        
+        if st.button("Uložit externí souhrn na R2", key="btn_save_ext_summary", type="primary"):
+            if pasted_summary.strip():
+                ok, res = save_summary_to_state_and_r2(pasted_summary, "External AI (manual)")
+                if ok: 
+                    st.success(f"✅ Externí souhrn uložen jako `{res}.md` a `{res}.pdf`.")
+                    st.rerun()
+                else: 
+                    st.warning(f"⚠️ Uloženo lokálně, R2 selhalo: {res}")
+            else:
+                st.error("Nejprve vložte text souhrnu.")
+
+    # Zobrazení hotového souhrnu (společné pro obě záložky)
     if st.session_state.get("summary_md"):
         st.markdown("---")
+        st.subheader("✅ Hotový souhrn")
         with st.expander("Náhled souhrnu", expanded=True):
             st.markdown(st.session_state.summary_md)
         
@@ -380,7 +429,7 @@ else:
     # UI pro kritiku
     render_critique_ui(available_providers)
     
-    # UI pro souhrn (zohlední kritiku, pokud existuje)
+    # UI pro souhrn (s novými záložkami API / Externí)
     render_summary_ui(available_providers)
     
     st.divider()
