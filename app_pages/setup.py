@@ -3,6 +3,25 @@ import random
 from utils.config import t, PRESET_KEYS, TEMPERAMENT_KEYS, EXPERTISE_KEYS, LENGTH_KEYS, GOAL_KEYS, RULE_KEYS, MODE_KEYS, PRESETS
 from utils.pdf_export import extract_text_from_file
 
+# Klíče, které si musíme pamatovat pro jednotlivé kroky
+STEP_1_KEYS = ["debate_mode", "preset_select", "debate_rules", "debate_goal", "response_length"]
+STEP_2_KEYS = ["role_a_name", "role_a_prompt", "provider_a", "temperament_a", "expertise_a", "input_type_a", 
+               "role_b_name", "role_b_prompt", "provider_b", "temperament_b", "expertise_b", "input_type_b",
+               "role_c_name", "role_c_prompt", "provider_c", "temperament_c", "expertise_c", "input_type_c",
+               "provider_mod", "max_rounds", "memory_limit"]
+STEP_3_KEYS = ["topic_input_type", "topic_input", "topic_document_text", "uploaded_files_hash"]
+
+def save_state(keys):
+    for k in keys:
+        if k in st.session_state:
+            st.session_state[f"cached_{k}"] = st.session_state[k]
+
+def load_state(keys):
+    for k in keys:
+        cache_key = f"cached_{k}"
+        if cache_key in st.session_state and st.session_state[cache_key] is not None:
+            st.session_state[k] = st.session_state[cache_key]
+
 def apply_preset_callback():
     preset = st.session_state.preset_select
     if preset == "custom" or preset not in PRESETS: return
@@ -26,7 +45,9 @@ select_options = available_providers if available_providers else ["(Zadejte klí
 
 st.title(t("nav_setup"))
 
+# --- KROK 1 ---
 if st.session_state.setup_step == 1:
+    load_state(STEP_1_KEYS)
     st.subheader(t("setup_step1"))
     
     st.radio(t("mode_label"), options=MODE_KEYS, format_func=lambda k: t(f"mode_{k}"), key="debate_mode")
@@ -37,9 +58,12 @@ if st.session_state.setup_step == 1:
     st.radio(t("debate_goal_label"), options=GOAL_KEYS, format_func=lambda k: t(f"goal_{k}"), key="debate_goal")
     st.multiselect(t("rules_label"), options=RULE_KEYS, format_func=lambda k: t(f"rule_{k}"), key="debate_rules")
 
+# --- KROK 2 ---
 elif st.session_state.setup_step == 2:
+    load_state(STEP_2_KEYS)
     st.subheader(t("setup_step2"))
     mode = st.session_state.debate_mode
+    
     if st.session_state.provider_a not in select_options: st.session_state.provider_a = select_options[0]
     if st.session_state.provider_b not in select_options: st.session_state.provider_b = select_options[0]
     if st.session_state.provider_c not in select_options: st.session_state.provider_c = select_options[0]
@@ -107,9 +131,13 @@ elif st.session_state.setup_step == 2:
         st.slider(t("rounds"), min_value=2, max_value=30, key="max_rounds")
         st.slider(t("memory_limit_label"), min_value=2, max_value=30, key="memory_limit")
 
+# --- KROK 3 ---
 elif st.session_state.setup_step == 3:
+    load_state(STEP_3_KEYS)
     st.subheader(t("setup_step3"))
+    
     st.radio(t("topic_type"), options=["manual", "upload"], format_func=lambda x: t(x), key="topic_input_type")
+    
     if st.session_state.topic_input_type == "manual":
         st.text_input(t("topic_text"), key="topic_input")
         st.session_state.topic_document_text = ""
@@ -118,7 +146,7 @@ elif st.session_state.setup_step == 3:
         topic_files = st.file_uploader(t("upload_topic"), type=["pdf", "md", "txt"], accept_multiple_files=True)
         if topic_files:
             file_names = "_".join([f.name for f in topic_files])
-            if st.session_state.uploaded_files_hash != file_names:
+            if st.session_state.get("uploaded_files_hash") != file_names:
                 full_text = ""
                 for f in topic_files: full_text += f"--- Document: {f.name} ---\n" + extract_text_from_file(f) + "\n\n"
                 st.session_state.topic_document_text = full_text
@@ -130,11 +158,19 @@ col1, col2 = st.columns([1, 1])
 with col1:
     if st.session_state.setup_step > 1:
         if st.button(t("back"), use_container_width=True):
+            # Uložíme data z aktuálního kroku, než odejdeme
+            if st.session_state.setup_step == 2: save_state(STEP_2_KEYS)
+            elif st.session_state.setup_step == 3: save_state(STEP_3_KEYS)
+            
             st.session_state.setup_step -= 1
             st.rerun()
 with col2:
     if st.session_state.setup_step < 3:
         if st.button(t("next"), type="primary", use_container_width=True):
+            # Uložíme data z aktuálního kroku, než odejdeme
+            if st.session_state.setup_step == 1: save_state(STEP_1_KEYS)
+            elif st.session_state.setup_step == 2: save_state(STEP_2_KEYS)
+            
             st.session_state.setup_step += 1
             st.rerun()
     else:
