@@ -63,7 +63,7 @@ with st.sidebar:
         st.success(t("save_keys_success"))
 
     st.divider()
-    st.caption("© 2026 Lukáš Buchvalek")
+    st.caption("© 2026 Lukáš Buchvald")
 
 # Zde je samotná navigace v levém menu
 pg = st.navigation([
