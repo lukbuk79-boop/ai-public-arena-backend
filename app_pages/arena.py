@@ -14,7 +14,7 @@ from utils.ai_providers import (
     enhance_role_prompt, build_judge_prompt, generate_filename_from_topic, 
     call_ai, call_critique_api, NVIDIA_PREFERRED
 )
-from utils.pdf_export import generate_pdf
+from utils.pdf_export import generate_pdf, extract_text_from_file
 from utils.storage import get_next_counter, get_r2_client, save_critique_result, reset_critique_state
 
 init_state()
@@ -104,16 +104,69 @@ def render_critique_ui(available_providers_list):
 # HLAVNÍ TITULEK
 st.title(t("debate_title"))
 
-# --- ZDE JE NOVÝ VZHLED ÚVODNÍ STRÁNKY (Když se ještě nedebatuje) ---
+# --- ÚVODNÍ STRÁNKA (Pokud se ještě nedebatuje) ---
 if not st.session_state.debate_active:
-    st.info(t("tip"))
+    if st.session_state.lang == "cs":
+        st.markdown("""
+        <div style="background-color: #e0f2fe; padding: 20px; border-radius: 10px; border-left: 5px solid #0284c7; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #0369a1;">💡 Tip: K provozu arény bohatě stačí jeden API klíč.</h4>
+            <p style="margin-bottom: 0; font-size: 16px; color: #0c4a6e;">
+                Pokud žádný nemáte, nejjednodušší je <a href="https://aistudio.google.com/app/api-keys" target="_blank" style="font-weight: bold; color: #0284c7;">Google Gemini</a> 
+                (stačí vám k tomu jen běžný Google účet).
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background-color: #e0f2fe; padding: 20px; border-radius: 10px; border-left: 5px solid #0284c7; margin-bottom: 20px;">
+            <h4 style="margin-top: 0; color: #0369a1;">💡 Tip: One API key is enough to run the arena.</h4>
+            <p style="margin-bottom: 0; font-size: 16px; color: #0c4a6e;">
+                If you don't have one, the easiest is <a href="https://aistudio.google.com/app/api-keys" target="_blank" style="font-weight: bold; color: #0284c7;">Google Gemini</a> 
+                (all you need is a standard Google account).
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
     st.caption(t("debate_caption"))
     
-    st.write("") # Mezera
+    st.divider()
+
+    st.radio(t("topic_type"), options=["manual", "upload"], format_func=lambda x: t(x), key="topic_input_type")
     
-    if st.button("⚙️ " + t("nav_setup"), type="primary", use_container_width=True):
-        st.switch_page("app_pages/setup.py")
-        
+    if st.session_state.topic_input_type == "manual":
+        st.text_input(t("topic_text"), key="topic_input")
+        st.session_state.topic_document_text = ""
+    else:
+        st.text_input(t("topic_file"), key="topic_input")
+        topic_files = st.file_uploader(t("upload_topic"), type=["pdf", "md", "txt"], accept_multiple_files=True)
+        if topic_files:
+            file_names = "_".join([f.name for f in topic_files])
+            if st.session_state.get("uploaded_files_hash") != file_names:
+                full_text = ""
+                for f in topic_files: full_text += f"--- Document: {f.name} ---\n" + extract_text_from_file(f) + "\n\n"
+                st.session_state.topic_document_text = full_text
+                st.session_state.uploaded_files_hash = file_names
+                st.success(f"✅ Načteno {len(topic_files)} dokumentů.")
+
+    if st.button("🚀 " + t("start_debate"), type="primary"):
+        is_valid = True
+        if not st.session_state.get("topic_input", "").strip() or not st.session_state.get("role_a_name", "").strip(): is_valid = False
+        if st.session_state.debate_mode != "ai_vs_human" and not st.session_state.get("role_b_name", "").strip(): is_valid = False
+        if st.session_state.debate_mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and not st.session_state.get("role_c_name", "").strip(): is_valid = False
+
+        if not is_valid:
+            st.error("Vyplňte prosím všechna povinná pole v postranním panelu (jména osobností) a téma diskuze.")
+        elif st.session_state.topic_input_type == "upload" and not st.session_state.topic_document_text:
+            st.error("Nahrajte prosím alespoň jeden dokument.")
+        else:
+            st.session_state.debate_active = True
+            st.session_state.debate_finished = False
+            st.session_state.current_round = 0
+            st.session_state.turn_index = 0
+            st.session_state.full_history = []
+            st.session_state.current_topic = st.session_state.topic_input
+            st.rerun()
+            
     st.stop()
 
 # --- POKUD DEBATA BĚŽÍ, POKRAČUJE ZDE ---
@@ -267,4 +320,4 @@ if st.session_state.debate_finished:
         st.session_state.debate_finished = False
         st.session_state.full_history = []
         reset_critique_state()
-        st.switch_page("app_pages/setup.py")
+        st.rerun()
