@@ -1,0 +1,120 @@
+import streamlit as st
+
+TEXTS = {
+    "cs": {
+        "lang_name": "Jazyk / Language", "nav": "🧭 Navigace", "nav_arena": "⚔️ Debatní Aréna", "nav_help": "❓ Nápověda a návody", "nav_setup": "⚙️ Nastavení debaty",
+        "api_keys": "🔑 API klíče", "save_keys": "💾 Uložit klíče do prohlížeče", "save_keys_success": "✅ Klíče byly uloženy do paměti prohlížeče.",
+        "provider_select": "Poskytovatel", "rounds": "Počet výměn názorů (kol)", "persona_a": "Osobnost A", "persona_b": "Osobnost B",
+        "name": "Jméno", "input_type": "Způsob zadání instrukcí", "manual": "Ručně", "upload": "Nahrát soubor", "instructions": "Instrukce",
+        "moderator": "Moderátor (Rozhodčí)", "topic_type": "Způsob zadání tématu:", "topic_text": "Téma diskuze:", "topic_file": "Název diskuze (pro export):",
+        "upload_topic": "Nahrajte podklady pro diskuzi (PDF, MD, TXT)", "start_debate": "🚀 Spustit diskuzi",
+        "no_key_error": "⚠️ **Nemáte zadán žádný API klíč!** K provozu arény bohatě stačí jeden API klíč. Pokud žádný nemáte, nejjednodušší je [**Google Gemini**](https://aistudio.google.com/app/apikey) (stačí vám k tomu jen běžný Google účet).",
+        "tip": "💡 **Tip:** K provozu arény bohatě stačí **jeden API klíč**. Pokud žádný nemáte, nejjednodušší je [**Google Gemini**](https://aistudio.google.com/app/apikey) (stačí vám k tomu jen běžný Google účet).",
+        "debate_title": "🗣️ AI Public Aréna", "debate_caption": "Automatizovaná diskuze dvou AI osobností s dynamickým výběrem modelů.",
+        "judge": "Rozhodčí", "new_debate": "🔄 Nová debata", "critique_title": "🔍 Nezávislá kritika diskuze", "critique_caption": "Nechte diskuzi a verdikt rozhodčího posoudit další nezávislou AI.",
+        "start_critique": "Spustit nezávislou kritiku", "tab_api": "🤖 Přímé API (automatické)", "tab_ext": "🌐 Externí AI chat (manuální)", "critique_gen": "🚀 Generovat kritiku pomocí",
+        "ext_info": "💡 **Externí chat:** Zkopírujte prompt, přiložte PDF diskuzi a nechte AI vyhodnotit. Poté výsledek vložte zpět.",
+        "ext_step1": "1. 📄 Stáhnout PDF diskuze", "ext_step2": "2. Otevřete váš oblíbený AI chat:", "ext_step3": "3. Zkopírujte prompt a vložte ho do chatu (spolu s PDF):", "ext_step4": "4. Vložte sem výsledek kritiky z externího chatu:",
+        "save_critique": "💾 Uložit kritiku na R2", "ready_critique": "✅ Hotová kritika", "dl_critique_md": "📥 Kritika (.md)", "dl_critique_pdf": "📄 Kritika (.pdf)", "preview_critique": "📄 Náhled kritiky",
+        "dl_md": "📥 Stáhnout jako Markdown (.md)", "dl_pdf": "📄 Stáhnout jako PDF (.pdf)",
+        "h_title": "📖 Nápověda a návody", "h_sub": "Proč používat AI Public Arénu? (3 hlavní výhody)",
+        "h_p1": "**Odstraňuje jednostranný pohled jedné AI:** Klasický chat Vám řekne jen jeden názor. Aréna postaví proti sobě dva různé agenty s odlišnými osobnostmi, což odhalí slabiny v argumentech mnohem lépe.",
+        "h_p2": "**Objektivní rozhodčí:** Po skončení debaty nastupuje třetí nezávislá AI (rozhodčí), která má za úkol nestranně zvážit argumenty obou stran a vynést jasný verdikt.",
+        "h_p3": "**Hlubší analýza:** Díky automatickému střídání replik a možnosti nahrát podkladové dokumenty (PDF) jde o precizní nástroj pro analýzu složitých témat (politika, filozofie, vědecké studie).",
+        "h_start": "## 🚀 Jak začít\nK provozu aplikace **bohatě stačí jeden API klíč**. Nemusíte zakládat účty u všech poskytovatelů.",
+        "h_start_gemini": "*   **Nejjednodušší volba je Google Gemini.** Pokud máte účet Google (Gmail), máte pravděpodobně přístup i do Google AI Studia, kde klíč získáte během 30 vteřin zdarma.",
+        "h_start_other": "*   Ostatní klíče (Mistral, NVIDIA) jsou zde jako alternativa pro specifické modely nebo jako záloha, pokud by Vám došly limity.",
+        "h_start_save": "*   **Tip:** V postranním panelu můžete kliknout na tlačítko \"Uložit klíče do prohlížeče\". Vaše klíče se bezpečně uloží do paměti vašeho prohlížeče a při příští návštěvě se automaticky vyplní.",
+        "exp_gemini": "🔵 Google Gemini (Nejjednodušší na získání)", "exp_nvidia": "🟢 NVIDIA NIM (Rychlost a velké modely)", "exp_mistral": "🟠 Mistral AI (Alternativa)", "exp_crit": "🟣 Nezávislá kritika – jak to funguje",
+        "preset_label": "🎬 Rychlý preset", "preset_help": "Vyberte hotový scénář pro rychlý start. Volba 'Vlastní' nic nemění – vše si nastavíte sami.",
+        "preset_academic": "🎓 Akademická debata", "preset_aggressive": "⚔️ Agresivní souboj", "preset_consensus": "🤝 Hledání konsenzu", "preset_factcheck": "🔬 Fact-check duel", "preset_brainstorm": "💡 Brainstorming", "preset_dissenter": "🔥 Dissenter (neshoda jako cíl)", "preset_custom": "✏️ Vlastní nastavení",
+        "temperament_label": "Temperament", "temperament_neutral": "Neutrální / věcný", "temperament_passionate": "Vášnivý / emotivní", "temperament_ironic": "Ironický / sarkastický", "temperament_empathetic": "Empatický / naslouchající", "temperament_aggressive": "Agresivní / konfrontační",
+        "expertise_label": "Expertíza", "expertise_layman": "Laik", "expertise_student": "Student", "expertise_expert": "Odborník", "expertise_professor": "Profesor", "expertise_visionary": "Vizionář",
+        "random_button": "🎲 Náhodně", "response_length_label": "Délka odpovědi", "length_short": "💬 Krátká (1–2 věty)", "length_medium": "📝 Střední (1 odstavec)", "length_long": "📄 Dlouhá (2–3 odstavce)", "length_detailed": "📚 Detailní (bez omezení)",
+        "debate_goal_label": "🎯 Cíl debaty", "goal_verdict": "⚖️ Verdikt (vybrat vítěze)", "goal_consensus": "🤝 Konsenzus (shrnout shody)", "goal_dissenter": "🔥 Dissenter (zvýraznit neshodu)",
+        "rules_label": "📏 Specifická pravidla", "rule_no_repeat": "Neopakovat již řečené argumenty", "rule_facts_only": "Jen fakta, žádné spekulace", "rule_cite_sources": "Citovat zdroje a data", "rule_admit_ignorance": "Přiznat, když něco nevím", "rule_allow_fiction": "Smí používat fiktivní data (roleplay)", "rule_allow_mind_change": "Smí změnit názor, pokud ho protivník přesvědčí", "rule_no_personal": "Vyhýbat se osobním útokům", "rule_end_question": "Každá replika končí otázkou na protivníka",
+        "advanced_settings": "⚙️ Pokročilé nastavení", "memory_limit_label": "Paměť kontextu (posledních N replik)",
+        "setup_step1": "Krok 1: Výběr presetu a pravidel", "setup_step2": "Krok 2: Osobnosti diskutujících", "setup_step3": "Krok 3: Téma a spuštění",
+        "next": "Další ➡️", "back": "⬅️ Zpět", "start": "🚀 Spustit arénu"
+    },
+    "en": {
+        "lang_name": "Language / Jazyk", "nav": "🧭 Navigation", "nav_arena": "⚔️ Debate Arena", "nav_help": "❓ Help & Guides", "nav_setup": "⚙️ Debate Settings",
+        "api_keys": "🔑 API Keys", "save_keys": "💾 Save Keys to Browser", "save_keys_success": "✅ Keys have been saved to browser memory.",
+        "provider_select": "Provider", "rounds": "Number of exchanges (rounds)", "persona_a": "Persona A", "persona_b": "Persona B",
+        "name": "Name", "input_type": "How to input instructions", "manual": "Manual", "upload": "Upload file", "instructions": "Instructions",
+        "moderator": "Moderator (Judge)", "topic_type": "How to input topic:", "topic_text": "Debate topic:", "topic_file": "Debate name (for export):",
+        "upload_topic": "Upload debate materials (PDF, MD, TXT)", "start_debate": "🚀 Start Debate",
+        "no_key_error": "⚠️ **No API key provided!** One API key is enough to run the arena. If you don't have one, the easiest is [**Google Gemini**](https://aistudio.google.com/app/apikey) (all you need is a standard Google account).",
+        "tip": "💡 **Tip:** **One API key is enough** to run the arena. If you don't have one, the easiest is [**Google Gemini**](https://aistudio.google.com/app/apikey) (all you need is a standard Google account).",
+        "debate_title": "🗣️ AI Public Arena", "debate_caption": "Automated discussion of two AI personas with dynamic model selection.",
+        "judge": "Judge", "new_debate": "🔄 New Debate", "critique_title": "🔍 Independent Critique", "critique_caption": "Let another independent AI evaluate the debate and the judge's verdict.",
+        "start_critique": "Start Independent Critique", "tab_api": "🤖 Direct API (automatic)", "tab_ext": "🌐 External AI chat (manual)", "critique_gen": "🚀 Generate critique using",
+        "ext_info": "💡 **External chat:** Copy the prompt, attach the PDF debate, and let the AI evaluate it. Then paste the result back.",
+        "ext_step1": "1. 📄 Download PDF debate", "ext_step2": "2. Open your favorite AI chat:", "ext_step3": "3. Copy the prompt and paste it into the chat (along with the PDF):", "ext_step4": "4. Paste the critique result from the external chat here:",
+        "save_critique": "💾 Save Critique to R2", "ready_critique": "✅ Critique Ready", "dl_critique_md": "📥 Critique (.md)", "dl_critique_pdf": "📄 Critique (.pdf)", "preview_critique": "📄 Critique Preview",
+        "dl_md": "📥 Download as Markdown (.md)", "dl_pdf": "📄 Download as PDF (.pdf)",
+        "h_title": "📖 Help & Guides", "h_sub": "Why use AI Public Arena? (3 Main Benefits)",
+        "h_p1": "**Removes the single-AI bias:** A classic chat gives you only one perspective. The Arena pits two different agents with distinct personas against each other, exposing weaknesses in arguments much better.",
+        "h_p2": "**Objective Judge:** After the debate ends, a third independent AI (judge) steps in to impartially weigh the arguments of both sides and deliver a clear verdict.",
+        "h_p3": "**Deeper Analysis:** Thanks to automatic turn-taking and the ability to upload supporting documents (PDF), it's a precise tool for analyzing complex topics (politics, philosophy, scientific studies).",
+        "h_start": "## 🚀 How to start\n**One API key is more than enough** to run the app. You don't need to create accounts with all providers.",
+        "h_start_gemini": "*   **The easiest choice is Google Gemini.** If you have a Google account (Gmail), you likely have access to Google AI Studio, where you can get a free key in 30 seconds.",
+        "h_start_other": "*   Other keys (Mistral, NVIDIA) are here as an alternative for specific models or as a backup if you run out of limits.",
+        "h_start_save": "*   **Tip:** In the sidebar, you can click \"Save Keys to Browser\". Your keys will be securely saved in your browser's memory and automatically filled in on your next visit.",
+        "exp_gemini": "🔵 Google Gemini (Easiest to get)", "exp_nvidia": "🟢 NVIDIA NIM (Speed and large models)", "exp_mistral": "🟠 Mistral AI (Alternative)", "exp_crit": "🟣 Independent Critique – How it works",
+        "preset_label": "🎬 Quick Preset", "preset_help": "Choose a preset for a quick start. 'Custom' does nothing – you set everything yourself.",
+        "preset_academic": "🎓 Academic Debate", "preset_aggressive": "⚔️ Aggressive Duel", "preset_consensus": "🤝 Consensus Seeking", "preset_factcheck": "🔬 Fact-check Duel", "preset_brainstorm": "💡 Brainstorming", "preset_dissenter": "🔥 Dissenter (disagreement as goal)", "preset_custom": "✏️ Custom",
+        "temperament_label": "Temperament", "temperament_neutral": "Neutral / factual", "temperament_passionate": "Passionate / emotional", "temperament_ironic": "Ironic / sarcastic", "temperament_empathetic": "Empathetic / listening", "temperament_aggressive": "Aggressive / confrontational",
+        "expertise_label": "Expertise", "expertise_layman": "Layperson", "expertise_student": "Student", "expertise_expert": "Expert", "expertise_professor": "Professor", "expertise_visionary": "Visionary",
+        "random_button": "🎲 Randomize", "response_length_label": "Response length", "length_short": "💬 Short (1–2 sentences)", "length_medium": "📝 Medium (1 paragraph)", "length_long": "📄 Long (2–3 paragraphs)", "length_detailed": "📚 Detailed (no limit)",
+        "debate_goal_label": "🎯 Debate goal", "goal_verdict": "⚖️ Verdict (pick a winner)", "goal_consensus": "🤝 Consensus (summarize agreements)", "goal_dissenter": "🔥 Dissenter (highlight disagreement)",
+        "rules_label": "📏 Specific rules", "rule_no_repeat": "Do not repeat arguments already made", "rule_facts_only": "Facts only, no speculation", "rule_cite_sources": "Cite sources and data", "rule_admit_ignorance": "Admit when I don't know something", "rule_allow_fiction": "May use fictional data (roleplay)", "rule_allow_mind_change": "May change opinion if opponent convinces me", "rule_no_personal": "Avoid personal attacks", "rule_end_question": "Every reply ends with a question to the opponent",
+        "advanced_settings": "⚙️ Advanced Settings", "memory_limit_label": "Context memory (last N replies)",
+        "setup_step1": "Step 1: Presets & Rules", "setup_step2": "Step 2: Personas", "setup_step3": "Step 3: Topic & Start",
+        "next": "Next ➡️", "back": "⬅️ Back", "start": "🚀 Start Arena"
+    }
+}
+
+def t(key):
+    return TEXTS[st.session_state.lang].get(key, key)
+
+PRESET_KEYS = ["academic", "aggressive", "consensus", "factcheck", "brainstorm", "dissenter", "custom"]
+TEMPERAMENT_KEYS = ["neutral", "passionate", "ironic", "empathetic", "aggressive"]
+EXPERTISE_KEYS = ["layman", "student", "expert", "professor", "visionary"]
+LENGTH_KEYS = ["short", "medium", "long", "detailed"]
+GOAL_KEYS = ["verdict", "consensus", "dissenter"]
+RULE_KEYS = ["no_repeat", "facts_only", "cite_sources", "admit_ignorance", "allow_fiction", "allow_mind_change", "no_personal", "end_question"]
+
+PRESETS = {
+    "academic": {"temperament_a": "neutral", "temperament_b": "neutral", "expertise_a": "professor", "expertise_b": "professor", "response_length": "medium", "debate_goal": "verdict", "debate_rules": ["no_repeat", "cite_sources", "admit_ignorance"]},
+    "aggressive": {"temperament_a": "passionate", "temperament_b": "aggressive", "expertise_a": "expert", "expertise_b": "expert", "response_length": "short", "debate_goal": "verdict", "debate_rules": ["no_repeat", "no_personal", "end_question"]},
+    "consensus": {"temperament_a": "empathetic", "temperament_b": "empathetic", "expertise_a": "expert", "expertise_b": "expert", "response_length": "long", "debate_goal": "consensus", "debate_rules": ["no_repeat", "allow_mind_change", "no_personal"]},
+    "factcheck": {"temperament_a": "neutral", "temperament_b": "neutral", "expertise_a": "expert", "expertise_b": "expert", "response_length": "medium", "debate_goal": "verdict", "debate_rules": ["facts_only", "cite_sources", "admit_ignorance", "no_repeat"]},
+    "brainstorm": {"temperament_a": "passionate", "temperament_b": "passionate", "expertise_a": "visionary", "expertise_b": "visionary", "response_length": "short", "debate_goal": "consensus", "debate_rules": ["allow_fiction", "end_question"]},
+    "dissenter": {"temperament_a": "passionate", "temperament_b": "passionate", "expertise_a": "expert", "expertise_b": "expert", "response_length": "medium", "debate_goal": "dissenter", "debate_rules": ["no_repeat", "facts_only", "end_question"]},
+}
+
+TEMPERAMENT_PROMPTS = {
+    "cs": {"neutral": "", "passionate": "Vyjadřuj se vášnivě a s emocemi. Používej silná slova a živé metafory. Tvé argumenty mají jiskru.", "ironic": "Používej ironii a jemný sarkasmus. Shazuj argumenty oponenta s nadhledem, ale zůstaň věcný.", "empathetic": "Nejprve pochop a oceni stanovisko oponenta, teprve pak argumentuj. Buď vstřícný a hledej průsečíky.", "aggressive": "Buď konfrontační a asertivní. Útoč na slabá místa argumentů, ale vyhýbej se osobním útokům."},
+    "en": {"neutral": "", "passionate": "Express yourself passionately and emotionally. Use strong words and vivid metaphors. Your arguments have spark.", "ironic": "Use irony and mild sarcasm. Tear down your opponent's arguments with perspective, but stay factual.", "empathetic": "First understand and acknowledge your opponent's position, then argue. Be welcoming and seek common ground.", "aggressive": "Be confrontational and assertive. Attack the weak points of arguments, but avoid personal attacks."}
+}
+
+EXPERTISE_PROMPTS = {
+    "cs": {"layman": "Mluv jako laik – nechápej hluboké detaily, ptej se, používej jednoduchý jazyk a každodenní příklady.", "student": "Mluv jako student – základy ovládáš, ale občas tápeš, učíš se a kladeš otázky.", "expert": "Mluv jako odborník – argumentuj fundovaně, používej koncepty, ale nezahlcuj posluchače.", "professor": "Mluv jako profesor – akademicky, strukturovaně, s odkazy na širší kontext a výzkum.", "visionary": "Mluv jako vizionář – kreativně, mysli mimo rámec, přinášej nové perspektivy a neotřelé nápady."},
+    "en": {"layman": "Speak as a layperson – don't grasp deep details, ask questions, use simple language and everyday examples.", "student": "Speak as a student – you know the basics but sometimes struggle, you learn and ask questions.", "expert": "Speak as an expert – argue with authority, use concepts, but don't overwhelm the listener.", "professor": "Speak as a professor – academically, structured, with references to broader context and research.", "visionary": "Speak as a visionary – creatively, think outside the box, bring new perspectives and fresh ideas."}
+}
+
+LENGTH_PROMPTS = {
+    "cs": {"short": "Odpovídej velmi krátce – maximálně 1–2 věty. Buď úderný.", "medium": "Odpovídej v jednom odstavci (3–5 vět).", "long": "Odpovídej ve 2–3 odstavcích.", "detailed": "Odpovídej detailně, bez omezení délky."},
+    "en": {"short": "Reply very briefly – at most 1–2 sentences. Be punchy.", "medium": "Reply in one paragraph (3–5 sentences).", "long": "Reply in 2–3 paragraphs.", "detailed": "Reply in detail, no length limit."}
+}
+
+RULE_PROMPTS = {
+    "cs": {"no_repeat": "Neopakuj již řečené argumenty. Vždy přines nový úhel pohledu.", "facts_only": "Používej jen fakta a ověřitelné informace. Vyhýbej se spekulacím.", "cite_sources": "Pokud můžeš, cituj zdroje, konkrétní data nebo výzkumy.", "admit_ignorance": "Když něco nevíš, přiznej to otevřeně. Nevymýšlej si.", "allow_fiction": "Můžeš používat fiktivní data nebo scénáře pro ilustraci (roleplay).", "allow_mind_change": "Můžeš změnit názor, pokud tě protivník přesvědčí. Ber to jako sílu, ne slabost.", "no_personal": "Vyhýbej se osobním útokům. Útoč na argumenty, ne na osobu.", "end_question": "Každou repliku zakonči otázkou na protivníka."},
+    "en": {"no_repeat": "Do not repeat arguments already made. Always bring a new angle.", "facts_only": "Use only facts and verifiable information. Avoid speculation.", "cite_sources": "If possible, cite sources, concrete data or research.", "admit_ignorance": "When you don't know something, admit it openly. Don't make things up.", "allow_fiction": "You may use fictional data or scenarios for illustration (roleplay).", "allow_mind_change": "You may change your mind if your opponent convinces you. Treat it as strength, not weakness.", "no_personal": "Avoid personal attacks. Attack the arguments, not the person.", "end_question": "End every reply with a question to your opponent."}
+}
+
+JUDGE_GOAL_PROMPTS = {
+    "cs": {"consensus": "TVŮJ CÍL NENÍ VYBRAT VÍTĚZE. Identifikuj, na čem se obě strany shodly, shrň společné závěry a jasně označ body, kde neshoda přetrvává. Formuluj doporučení pro další diskuzi.", "dissenter": "TVŮJ CÍL NENÍ VYBRAT VÍTĚZE. Popiš, v čem přesně se strany rozcházejí a proč (odlišné hodnoty, odlišná data, odlišné priority). Označ otázky, které zůstaly nerozhodnuté, a navrhni, co by bylo potřeba k jejich vyřešení."},
+    "en": {"consensus": "YOUR GOAL IS NOT TO PICK A WINNER. Identify what both sides agreed on, summarize common conclusions, and clearly mark points where disagreement persists. Formulate recommendations for further discussion.", "dissenter": "YOUR GOAL IS NOT TO PICK A WINNER. Describe exactly where the parties diverge and why (different values, different data, different priorities). Mark questions that remained unresolved and suggest what would be needed to resolve them."}
+}
