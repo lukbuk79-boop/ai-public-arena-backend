@@ -40,7 +40,7 @@ def init_state():
         "role_b_name": "", "role_b_prompt": "", "provider_b": "Gemini", "temperament_b": "neutral", "expertise_b": "professor", "input_type_b": "manual",
         "role_c_name": "", "role_c_prompt": "", "provider_c": "Gemini", "temperament_c": "neutral", "expertise_c": "professor", "input_type_c": "manual",
         "provider_mod": "Gemini", "max_rounds": 4, "memory_limit": 10,
-        "topic_input_type": "manual", "topic_input": "", "topic_document_text": "", "uploaded_files_hash": "",
+        "topic_input_type": "manual", "topic_input": "", "topic_document_text": "", "topic_summary": "", "uploaded_files_hash": "",
         "setup_step": 1, "debate_active": False, "debate_finished": False, "current_round": 0, "turn_index": 0,
         "full_history": [], "final_summary": "", "model_mod_used": "", "current_topic": "", 
         "md_content": "", "pdf_bytes": b"", "file_base_name": "debata",
