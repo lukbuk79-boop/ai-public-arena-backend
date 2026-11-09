@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import base64
+import json  # Přidáno pro bezpečné ukládání klíčů
 from utils.state import init_state
 from utils.config import t
 
@@ -36,15 +37,18 @@ with st.sidebar:
     
     # API Klíče
     st.header(t("api_keys"))
-    st.session_state.gemini_key = st.text_input(f"🔑 Gemini:", type="password", value=st.session_state.gemini_key, placeholder="AIzaSy...")
-    st.session_state.mistral_key = st.text_input(f"🔑 Mistral:", type="password", value=st.session_state.mistral_key, placeholder="...")
-    st.session_state.nim_key = st.text_input(f"🔑 NVIDIA:", type="password", value=st.session_state.nim_key, placeholder="nvapi-...")
+    
+    # OPRAVA: Použití key="..." zajistí, že Streamlit okamžitě ví o každé změně v políčku
+    st.text_input(f"🔑 Gemini {t('api_keys')}:", type="password", key="gemini_key", placeholder="AIzaSy...")
+    st.text_input(f"🔑 Mistral {t('api_keys')}:", type="password", key="mistral_key", placeholder="...")
+    st.text_input(f"🔑 NVIDIA {t('api_keys')}:", type="password", key="nim_key", placeholder="nvapi-...")
 
     if st.button(t("save_keys"), use_container_width=True):
-        g = st.session_state.gemini_key.replace("'", "\\'")
-        n = st.session_state.nim_key.replace("'", "\\'")
-        m = st.session_state.mistral_key.replace("'", "\\'")
-        js = f"<script>localStorage.setItem('arena_gemini', '{g}');localStorage.setItem('arena_nim', '{n}');localStorage.setItem('arena_mistral', '{m}');</script>"
+        # OPRAVA: json.dumps bezpečně obalí klíče do uvozovek a ochrání je před chybami v JS
+        g = json.dumps(st.session_state.gemini_key)
+        n = json.dumps(st.session_state.nim_key)
+        m = json.dumps(st.session_state.mistral_key)
+        js = f"<script>localStorage.setItem('arena_gemini', {g});localStorage.setItem('arena_nim', {n});localStorage.setItem('arena_mistral', {m});</script>"
         components.html(js, height=0)
         st.success(t("save_keys_success"))
 
