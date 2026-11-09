@@ -19,14 +19,16 @@ from utils.storage import get_next_counter, get_r2_client, save_critique_result,
 
 init_state()
 
-# --- NOVÉ: Vynucení výchozí volby "Ručně" ---
-# Tímto zajistíme, že pokud se aplikace načte poprvé, nebo se ztratí stav, 
-# bude výchozí volba vždy "Ručně" a ne "Nahrát soubor".
+# Vynucení výchozí volby "Ručně" (pokud se to nenačetlo ze setupu)
 if "input_type_a" not in st.session_state: st.session_state.input_type_a = "Ručně"
 if "input_type_b" not in st.session_state: st.session_state.input_type_b = "Ručně"
 if "input_type_c" not in st.session_state: st.session_state.input_type_c = "Ručně"
 if "topic_input_type" not in st.session_state: st.session_state.topic_input_type = "Ručně"
-# ---------------------------------------------
+
+# Inicializace paměti pro Souhrn
+if "summary_md" not in st.session_state: st.session_state.summary_md = ""
+if "summary_pdf" not in st.session_state: st.session_state.summary_pdf = b""
+if "summary_base_name" not in st.session_state: st.session_state.summary_base_name = ""
 
 def render_downloads():
     base_name = st.session_state.get("file_base_name", "debata")
@@ -46,9 +48,9 @@ def render_critique_ui(available_providers_list):
     
     def start_critique(): st.session_state.show_critique_ui = True
     
-    if not st.session_state.show_critique_ui and not st.session_state.critique_md:
+    if not st.session_state.get("show_critique_ui") and not st.session_state.critique_md:
         st.button(t("start_critique"), type="primary", use_container_width=True, on_click=start_critique)
-    if not (st.session_state.show_critique_ui or st.session_state.critique_md): return
+    if not (st.session_state.get("show_critique_ui") or st.session_state.critique_md): return
     
     tab_api, tab_ext = st.tabs([t("tab_api"), t("tab_ext")])
 
@@ -71,7 +73,6 @@ def render_critique_ui(available_providers_list):
 
     with tab_ext:
         st.info(t("ext_info"))
-
         pdf_b64 = base64.b64encode(st.session_state.pdf_bytes).decode('utf-8') if st.session_state.pdf_bytes else ""
         st.markdown(f'<a href="data:application/pdf;base64,{pdf_b64}" download="{st.session_state.file_base_name}.pdf" style="display:block; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:6px; font-weight:600; margin-bottom: 15px;">{t("ext_step1")}</a>', unsafe_allow_html=True)
 
@@ -109,6 +110,87 @@ def render_critique_ui(available_providers_list):
         pdf_b64 = base64.b64encode(st.session_state.critique_pdf).decode('utf-8')
         st.markdown(f'<div style="display:flex; gap:10px; margin:10px 0;"><a href="data:application/octet-stream;base64,{md_b64}" download="{st.session_state.critique_base}.md" style="flex:1; text-align:center; padding:10px; background:#f0f2f6; color:#31333f; text-decoration:none; border-radius:5px; border:1px solid #d6d6d6;">{t("dl_critique_md")}</a><a href="data:application/pdf;base64,{pdf_b64}" download="{st.session_state.critique_base}.pdf" style="flex:1; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:5px;">{t("dl_critique_pdf")}</a></div>', unsafe_allow_html=True)
         with st.expander(t("preview_critique"), expanded=False): st.markdown(st.session_state.critique_md)
+
+# NOVÁ FUNKCE: Generování Souhrnu
+def render_summary_ui(available_providers_list):
+    if not st.session_state.md_content: return
+    
+    st.divider()
+    st.subheader("📝 Souhrn debaty")
+    st.caption("Vytvořte stručný souhrn hlavních shod, neshod a závěru. Pokud je k dispozici nezávislá kritika, bude do souhrnu automaticky zahrnuta.")
+    
+    if not available_providers_list:
+        st.warning("Pro generování souhrnu musíte mít v menu zadaný alespoň jeden API klíč.")
+        return
+
+    options = available_providers_list
+    selected = st.selectbox("Poskytovatel pro souhrn:", options, key="summary_api_provider")
+    
+    has_critique = bool(st.session_state.get("critique_md"))
+    if has_critique:
+        st.info("ℹ️ Nezávislá kritika byla nalezena a bude do souhrnu zahrnuta.")
+    else:
+        st.info("ℹ️ Nezávislá kritika zatím není k dispozici. Souhrn bude vytvořen pouze z průběhu debaty.")
+
+    if st.button(f"Generovat souhrn pomocí {selected}", type="primary"):
+        with st.spinner("Vytvářím souhrn debaty..."):
+            sys_prompt = (
+                "Jsi odborník na analýzu a sumarizaci textu. Na základě průběhu debaty vytvoř "
+                "strukturovaný souhrn. Výstup by měl obsahovat tyto sekce:\n"
+                "### Hlavní shody\n"
+                "### Hlavní neshody\n"
+                "### Závěr\n"
+                "Buď stručný, ale výstižný. Zmiň klíčové argumenty diskutujících."
+            )
+            
+            context_text = "PRŮBĚH DEBATY:\n" + st.session_state.md_content
+            
+            if has_critique:
+                context_text += "\n\nNEZÁVISLÁ KRITIKA:\n" + st.session_state.critique_md
+                sys_prompt += " Zohledni také nezávislou kritiku a zapracuj její postřehy do závěru."
+
+            try:
+                # Volání AI s využitím klientů z hlavního běhu
+                ai_kwargs = {
+                    "gemini_client": st.session_state.get("gemini_client"),
+                    "mistral_client": st.session_state.get("mistral_client"),
+                    "nim_client": st.session_state.get("nim_client"),
+                    "gemini_models": st.session_state.get("gemini_models"),
+                    "mistral_models": st.session_state.get("mistral_models")
+                }
+                
+                summary_text, model_used = call_ai(sys_prompt, context_text, selected, **ai_kwargs)
+                
+                st.session_state.summary_md = f"# Souhrn debaty: {st.session_state.current_topic}\n\n**Datum:** {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n{summary_text}\n\n<small>Použitý model: {model_used}</small>"
+                st.session_state.summary_pdf = generate_pdf(st.session_state.summary_md)
+                
+                counter = st.session_state.get("file_counter", "00000")
+                base = f"{counter}_souhrn"
+                st.session_state.summary_base_name = base
+                
+                try:
+                    s3 = get_r2_client()
+                    bucket = st.secrets["R2_BUCKET_NAME"]
+                    s3.put_object(Bucket=bucket, Key=f"summary/{base}.md", Body=st.session_state.summary_md.encode("utf-8"))
+                    s3.put_object(Bucket=bucket, Key=f"summary/{base}.pdf", Body=st.session_state.summary_pdf)
+                    st.success(f"✅ Souhrn vygenerován a uložen na R2 jako `{base}.md` a `{base}.pdf`.")
+                except Exception as e:
+                    st.warning(f"⚠️ Souhrn vygenerován, ale nepodařilo se nahrát na R2: {e}")
+                    
+            except Exception as e:
+                st.error(f"Chyba při generování souhrnu: {e}")
+
+    # Zobrazení hotového souhrnu a tlačítek pro stažení
+    if st.session_state.get("summary_md"):
+        st.markdown("---")
+        with st.expander("Náhled souhrnu", expanded=True):
+            st.markdown(st.session_state.summary_md)
+        
+        md_b64 = base64.b64encode(st.session_state.summary_md.encode('utf-8')).decode('utf-8')
+        pdf_b64 = base64.b64encode(st.session_state.summary_pdf).decode('utf-8')
+        base = st.session_state.summary_base_name
+        
+        st.markdown(f'<div style="display:flex; gap:10px; margin:10px 0;"><a href="data:application/octet-stream;base64,{md_b64}" download="{base}.md" style="flex:1; text-align:center; padding:10px; background:#f0f2f6; color:#31333f; text-decoration:none; border-radius:5px; border:1px solid #d6d6d6;">📥 Stáhnout souhrn (.md)</a><a href="data:application/pdf;base64,{pdf_b64}" download="{base}.pdf" style="flex:1; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:5px;">📄 Stáhnout souhrn (.pdf)</a></div>', unsafe_allow_html=True)
 
 # HLAVNÍ TITULEK
 st.title(t("debate_title"))
@@ -156,6 +238,13 @@ nim_client = OpenAI(api_key=st.session_state.nim_key.strip(), base_url="https://
 gemini_models = get_available_gemini_models(gemini_client) if gemini_client else []
 mistral_models = get_available_mistral_models(mistral_client) if mistral_client else []
 nvidia_models = NVIDIA_PREFERRED if nim_client else []
+
+# Uložíme klienty do session_state pro pozdější použití v souhrnu
+st.session_state.gemini_client = gemini_client
+st.session_state.mistral_client = mistral_client
+st.session_state.nim_client = nim_client
+st.session_state.gemini_models = gemini_models
+st.session_state.mistral_models = mistral_models
 
 ai_kwargs = {
     "gemini_client": gemini_client, "mistral_client": mistral_client, "nim_client": nim_client,
@@ -252,6 +341,8 @@ if not st.session_state.debate_finished:
             
             try: counter = get_next_counter()
             except: counter = "00000"
+            
+            st.session_state.file_counter = counter
                 
             filename_base = generate_filename_from_topic(st.session_state.current_topic, call_ai, available_providers, **ai_kwargs)
             full_base = f"{counter}_{filename_base}"
@@ -285,7 +376,13 @@ else:
     
     st.divider()
     render_downloads()
+    
+    # UI pro kritiku
     render_critique_ui(available_providers)
+    
+    # UI pro souhrn (zohlední kritiku, pokud existuje)
+    render_summary_ui(available_providers)
+    
     st.divider()
 
 if st.session_state.debate_finished:
@@ -293,5 +390,6 @@ if st.session_state.debate_finished:
         st.session_state.debate_active = False
         st.session_state.debate_finished = False
         st.session_state.full_history = []
+        st.session_state.summary_md = "" # Reset souhrnu
         reset_critique_state()
         st.rerun()
