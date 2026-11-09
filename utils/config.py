@@ -4,13 +4,13 @@ TEXTS = {
     "cs": {
         "lang_name": "Jazyk / Language", "nav": "🧭 Navigace", "nav_arena": "⚔️ Debatní Aréna", "nav_help": "❓ Nápověda a návody", "nav_setup": "⚙️ Nastavení debaty",
         "api_keys": "🔑 API klíče", "save_keys": "💾 Uložit klíče do prohlížeče", "save_keys_success": "✅ Klíče byly uloženy do paměti prohlížeče.",
-        "provider_select": "Poskytovatel", "rounds": "Počet výměn názorů (kol)", "persona_a": "Osobnost A", "persona_b": "Osobnost B",
+        "provider_select": "Poskytovatel", "rounds": "Počet výměn názorů (kol)", "persona_a": "Osobnost A", "persona_b": "Osobnost B", "persona_c": "Osobnost C",
         "name": "Jméno", "input_type": "Způsob zadání instrukcí", "manual": "Ručně", "upload": "Nahrát soubor", "instructions": "Instrukce",
         "moderator": "Moderátor (Rozhodčí)", "topic_type": "Způsob zadání tématu:", "topic_text": "Téma diskuze:", "topic_file": "Název diskuze (pro export):",
         "upload_topic": "Nahrajte podklady pro diskuzi (PDF, MD, TXT)", "start_debate": "🚀 Spustit diskuzi",
         "no_key_error": "⚠️ **Nemáte zadán žádný API klíč!** K provozu arény bohatě stačí jeden API klíč. Pokud žádný nemáte, nejjednodušší je [**Google Gemini**](https://aistudio.google.com/app/apikey) (stačí vám k tomu jen běžný Google účet).",
         "tip": "💡 **Tip:** K provozu arény bohatě stačí **jeden API klíč**. Pokud žádný nemáte, nejjednodušší je [**Google Gemini**](https://aistudio.google.com/app/apikey) (stačí vám k tomu jen běžný Google účet).",
-        "debate_title": "🗣️ AI Public Aréna", "debate_caption": "Automatizovaná diskuze dvou AI osobností s dynamickým výběrem modelů.",
+        "debate_title": "🗣️ AI Public Aréna", "debate_caption": "Automatizovaná diskuze s dynamickým výběrem modelů.",
         "judge": "Rozhodčí", "new_debate": "🔄 Nová debata", "critique_title": "🔍 Nezávislá kritika diskuze", "critique_caption": "Nechte diskuzi a verdikt rozhodčího posoudit další nezávislou AI.",
         "start_critique": "Spustit nezávislou kritiku", "tab_api": "🤖 Přímé API (automatické)", "tab_ext": "🌐 Externí AI chat (manuální)", "critique_gen": "🚀 Generovat kritiku pomocí",
         "ext_info": "💡 **Externí chat:** Zkopírujte prompt, přiložte PDF diskuzi a nechte AI vyhodnotit. Poté výsledek vložte zpět.",
@@ -34,19 +34,29 @@ TEXTS = {
         "debate_goal_label": "🎯 Cíl debaty", "goal_verdict": "⚖️ Verdikt (vybrat vítěze)", "goal_consensus": "🤝 Konsenzus (shrnout shody)", "goal_dissenter": "🔥 Dissenter (zvýraznit neshodu)",
         "rules_label": "📏 Specifická pravidla", "rule_no_repeat": "Neopakovat již řečené argumenty", "rule_facts_only": "Jen fakta, žádné spekulace", "rule_cite_sources": "Citovat zdroje a data", "rule_admit_ignorance": "Přiznat, když něco nevím", "rule_allow_fiction": "Smí používat fiktivní data (roleplay)", "rule_allow_mind_change": "Smí změnit názor, pokud ho protivník přesvědčí", "rule_no_personal": "Vyhýbat se osobním útokům", "rule_end_question": "Každá replika končí otázkou na protivníka",
         "advanced_settings": "⚙️ Pokročilé nastavení", "memory_limit_label": "Paměť kontextu (posledních N replik)",
-        "setup_step1": "Krok 1: Výběr presetu a pravidel", "setup_step2": "Krok 2: Osobnosti diskutujících", "setup_step3": "Krok 3: Téma a spuštění",
-        "next": "Další ➡️", "back": "⬅️ Zpět", "start": "🚀 Spustit arénu"
+        "setup_step1": "Krok 1: Režim a pravidla debaty", "setup_step2": "Krok 2: Osobnosti diskutujících", "setup_step3": "Krok 3: Téma a spuštění",
+        "next": "Další ➡️", "back": "⬅️ Zpět", "start": "🚀 Spustit arénu",
+        # NOVÉ PŘEKLADY PRO REŽIMY
+        "mode_label": "Kdo bude debatovat?",
+        "mode_ai_vs_ai": "🤖 AI vs AI",
+        "mode_ai_vs_ai_vs_ai": "🤖 AI vs AI vs AI",
+        "mode_ai_vs_human": "🧑‍💻 AI vs Člověk",
+        "mode_ai_vs_ai_vs_human": "🤖 AI vs AI vs Člověk",
+        "mode_ai_vs_human_vs_human": "🤖 AI vs Člověk vs Člověk",
+        "human_name": "Vaše jméno",
+        "human_turn_prompt": "Napiš svůj argument a stiskni Enter...",
+        "human_turn_waiting": "je na řadě. Napiš svůj argument:",
     },
     "en": {
         "lang_name": "Language / Jazyk", "nav": "🧭 Navigation", "nav_arena": "⚔️ Debate Arena", "nav_help": "❓ Help & Guides", "nav_setup": "⚙️ Debate Settings",
         "api_keys": "🔑 API Keys", "save_keys": "💾 Save Keys to Browser", "save_keys_success": "✅ Keys have been saved to browser memory.",
-        "provider_select": "Provider", "rounds": "Number of exchanges (rounds)", "persona_a": "Persona A", "persona_b": "Persona B",
+        "provider_select": "Provider", "rounds": "Number of exchanges (rounds)", "persona_a": "Persona A", "persona_b": "Persona B", "persona_c": "Persona C",
         "name": "Name", "input_type": "How to input instructions", "manual": "Manual", "upload": "Upload file", "instructions": "Instructions",
         "moderator": "Moderator (Judge)", "topic_type": "How to input topic:", "topic_text": "Debate topic:", "topic_file": "Debate name (for export):",
         "upload_topic": "Upload debate materials (PDF, MD, TXT)", "start_debate": "🚀 Start Debate",
         "no_key_error": "⚠️ **No API key provided!** One API key is enough to run the arena. If you don't have one, the easiest is [**Google Gemini**](https://aistudio.google.com/app/apikey) (all you need is a standard Google account).",
         "tip": "💡 **Tip:** **One API key is enough** to run the arena. If you don't have one, the easiest is [**Google Gemini**](https://aistudio.google.com/app/apikey) (all you need is a standard Google account).",
-        "debate_title": "🗣️ AI Public Arena", "debate_caption": "Automated discussion of two AI personas with dynamic model selection.",
+        "debate_title": "🗣️ AI Public Arena", "debate_caption": "Automated discussion with dynamic model selection.",
         "judge": "Judge", "new_debate": "🔄 New Debate", "critique_title": "🔍 Independent Critique", "critique_caption": "Let another independent AI evaluate the debate and the judge's verdict.",
         "start_critique": "Start Independent Critique", "tab_api": "🤖 Direct API (automatic)", "tab_ext": "🌐 External AI chat (manual)", "critique_gen": "🚀 Generate critique using",
         "ext_info": "💡 **External chat:** Copy the prompt, attach the PDF debate, and let the AI evaluate it. Then paste the result back.",
@@ -70,8 +80,18 @@ TEXTS = {
         "debate_goal_label": "🎯 Debate goal", "goal_verdict": "⚖️ Verdict (pick a winner)", "goal_consensus": "🤝 Consensus (summarize agreements)", "goal_dissenter": "🔥 Dissenter (highlight disagreement)",
         "rules_label": "📏 Specific rules", "rule_no_repeat": "Do not repeat arguments already made", "rule_facts_only": "Facts only, no speculation", "rule_cite_sources": "Cite sources and data", "rule_admit_ignorance": "Admit when I don't know something", "rule_allow_fiction": "May use fictional data (roleplay)", "rule_allow_mind_change": "May change opinion if opponent convinces me", "rule_no_personal": "Avoid personal attacks", "rule_end_question": "Every reply ends with a question to the opponent",
         "advanced_settings": "⚙️ Advanced Settings", "memory_limit_label": "Context memory (last N replies)",
-        "setup_step1": "Step 1: Presets & Rules", "setup_step2": "Step 2: Personas", "setup_step3": "Step 3: Topic & Start",
-        "next": "Next ➡️", "back": "⬅️ Back", "start": "🚀 Start Arena"
+        "setup_step1": "Step 1: Mode & Rules", "setup_step2": "Step 2: Personas", "setup_step3": "Step 3: Topic & Start",
+        "next": "Next ➡️", "back": "⬅️ Back", "start": "🚀 Start Arena",
+        # NEW TRANSLATIONS FOR MODES
+        "mode_label": "Who will debate?",
+        "mode_ai_vs_ai": "🤖 AI vs AI",
+        "mode_ai_vs_ai_vs_ai": "🤖 AI vs AI vs AI",
+        "mode_ai_vs_human": "🧑‍💻 AI vs Human",
+        "mode_ai_vs_ai_vs_human": "🤖 AI vs AI vs Human",
+        "mode_ai_vs_human_vs_human": "🤖 AI vs Human vs Human",
+        "human_name": "Your Name",
+        "human_turn_prompt": "Write your argument and press Enter...",
+        "human_turn_waiting": "is your turn. Write your argument:",
     }
 }
 
@@ -84,6 +104,7 @@ EXPERTISE_KEYS = ["layman", "student", "expert", "professor", "visionary"]
 LENGTH_KEYS = ["short", "medium", "long", "detailed"]
 GOAL_KEYS = ["verdict", "consensus", "dissenter"]
 RULE_KEYS = ["no_repeat", "facts_only", "cite_sources", "admit_ignorance", "allow_fiction", "allow_mind_change", "no_personal", "end_question"]
+MODE_KEYS = ["ai_vs_ai", "ai_vs_ai_vs_ai", "ai_vs_human", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]
 
 PRESETS = {
     "academic": {"temperament_a": "neutral", "temperament_b": "neutral", "expertise_a": "professor", "expertise_b": "professor", "response_length": "medium", "debate_goal": "verdict", "debate_rules": ["no_repeat", "cite_sources", "admit_ignorance"]},
