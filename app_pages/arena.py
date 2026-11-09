@@ -150,12 +150,12 @@ elif mode == "ai_vs_human_vs_human":
 
 st.markdown(f"### 📌 Téma: *{st.session_state.current_topic}*")
 
-if st.session_state.topic_summary:
+# BEZPEČNÁ KONTROLA
+if st.session_state.get("topic_summary"):
     st.info(st.session_state.topic_summary)
 
 for i, (sender, text, model) in enumerate(st.session_state.full_history):
     is_human = model == "Human"
-    # Najdeme správný avatar podle jména
     avatar = next((p["avatar"] for p in participants if p["name"] == sender), "🔵")
     with st.chat_message("user" if is_human else "assistant", avatar=avatar):
         st.markdown(f"**{sender}:**\n\n{text}")
@@ -203,7 +203,6 @@ if not st.session_state.debate_finished:
             try:
                 final_sum, mod_mod = call_ai(judge_prompt, summary_context, st.session_state.provider_mod, **ai_kwargs)
             except Exception as e:
-                # Záloha, kdyby hlavní rozhodčí selhal
                 final_sum = f"Chyba rozhodčího: {e}"
                 mod_mod = "API Error"
 
