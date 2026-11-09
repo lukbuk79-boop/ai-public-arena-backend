@@ -41,34 +41,64 @@ else:
 
 # --- ROZBALOVACÍ MENU PRO ZÍSKÁNÍ KLÍČŮ ---
 with st.expander(t("exp_gemini")):
-    st.markdown("""
-    **How to get the key:**
-    1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey).
-    2. Sign in with your Google account.
-    3. Click on **Create API key**.
-    4. Copy the generated key (starts with `AIza...`) and paste it into the sidebar.
+    if st.session_state.lang == "cs":
+        st.markdown("""
+        **Jak získat klíč:**
+        1. Jděte na [Google AI Studio](https://aistudio.google.com/app/api-keys).
+        2. Přihlaste se svým Google účtem.
+        3. Klikněte na **Create API key**.
+        4. Zkopírujte vygenerovaný klíč (začíná na `AIza...`) a vložte ho do postranního panelu.
 
-    **Limits (Free tier):** Completely free. ~15 requests per minute, daily limit 500 - 1500 requests.
-    """)
+        **Limity (Free tier):** Zcela zdarma. ~15 requestů za minutu, denní limit 500 - 1500 requestů.
+        """)
+    else:
+        st.markdown("""
+        **How to get the key:**
+        1. Go to [Google AI Studio](https://aistudio.google.com/app/api-keys).
+        2. Sign in with your Google account.
+        3. Click on **Create API key**.
+        4. Copy the generated key (starts with `AIza...`) and paste it into the sidebar.
+
+        **Limits (Free tier):** Completely free. ~15 requests per minute, daily limit 500 - 1500 requests.
+        """)
 
 with st.expander(t("exp_mistral")):
-    st.markdown("""
-    **How to get the key:**
-    1. Go to [Mistral Console](https://console.mistral.ai/).
-    2. Register.
-    3. Go to **API Keys** -> **Create new key**.
-    """)
+    if st.session_state.lang == "cs":
+        st.markdown("""
+        **Jak získat klíč:**
+        1. Jděte na [Mistral Console](https://console.mistral.ai/).
+        2. Zaregistrujte se.
+        3. Jděte do **API Keys** -> **Create new key**.
+        """)
+    else:
+        st.markdown("""
+        **How to get the key:**
+        1. Go to [Mistral Console](https://console.mistral.ai/).
+        2. Register.
+        3. Go to **API Keys** -> **Create new key**.
+        """)
 
 with st.expander(t("exp_nvidia")):
-    st.markdown("""
-    **How to get the key:**
-    1. Go to [NVIDIA Build](https://build.nvidia.com/).
-    2. Register.
-    3. Click on your name in the top right -> **API Keys**.
-    4. Generate a new key (starts with `nvapi-...`).
+    if st.session_state.lang == "cs":
+        st.markdown("""
+        **Jak získat klíč:**
+        1. Jděte na [NVIDIA Build](https://build.nvidia.com/).
+        2. Zaregistrujte se.
+        3. Klikněte na své jméno vpravo nahoře -> **API Keys**.
+        4. Vygenerujte nový klíč (začíná na `nvapi-...`).
 
-    **Limits (Free tier):** Generous limits (~40 requests per minute), great for long texts.
-    """)
+        **Limity (Free tier):** Štědré limity (~40 requestů za minutu), skvělé pro dlouhé texty.
+        """)
+    else:
+        st.markdown("""
+        **How to get the key:**
+        1. Go to [NVIDIA Build](https://build.nvidia.com/).
+        2. Register.
+        3. Click on your name in the top right -> **API Keys**.
+        4. Generate a new key (starts with `nvapi-...`).
+
+        **Limits (Free tier):** Generous limits (~40 requests per minute), great for long texts.
+        """)
 
 st.divider()
 
@@ -94,9 +124,17 @@ st.divider()
 
 # --- NEZÁVISLÁ KRITIKA ---
 with st.expander(t("exp_crit")):
-    st.markdown("""
-    After the debate ends, you can have the debate and the judge's verdict evaluated by another AI:
-    
-    *   **Direct API:** If you have a key in the app, the critique will be generated directly by the server and saved to R2.
-    *   **External chat:** If you want to use a better model (e.g., paid ChatGPT Plus or Claude), download the debate PDF, open the chat link, and paste the prepared prompt. Then copy the result back into the app.
-    """)
+    if st.session_state.lang == "cs":
+        st.markdown("""
+        Po skončení debaty můžete nechat diskuzi a verdikt rozhodčího ohodnotit další AI:
+        
+        *   **Přímé API:** Pokud máte v aplikaci klíč, kritika bude vygenerována přímo serverem a uložena na R2.
+        *   **Externí chat:** Pokud chcete použít lepší model (např. placený ChatGPT Plus nebo Claude), stáhněte si PDF s diskuzí, otevřete odkaz na chat a vložte připravený prompt. Poté zkopírujte výsledek zpět do aplikace.
+        """)
+    else:
+        st.markdown("""
+        After the debate ends, you can have the debate and the judge's verdict evaluated by another AI:
+        
+        *   **Direct API:** If you have a key in the app, the critique will be generated directly by the server and saved to R2.
+        *   **External chat:** If you want to use a better model (e.g., paid ChatGPT Plus or Claude), download the debate PDF, open the chat link, and paste the prepared prompt. Then copy the result back into the app.
+        """)
