@@ -101,13 +101,22 @@ def render_critique_ui(available_providers_list):
         st.markdown(f'<div style="display:flex; gap:10px; margin:10px 0;"><a href="data:application/octet-stream;base64,{md_b64}" download="{st.session_state.critique_base}.md" style="flex:1; text-align:center; padding:10px; background:#f0f2f6; color:#31333f; text-decoration:none; border-radius:5px; border:1px solid #d6d6d6;">{t("dl_critique_md")}</a><a href="data:application/pdf;base64,{pdf_b64}" download="{st.session_state.critique_base}.pdf" style="flex:1; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:5px;">{t("dl_critique_pdf")}</a></div>', unsafe_allow_html=True)
         with st.expander(t("preview_critique"), expanded=False): st.markdown(st.session_state.critique_md)
 
+# HLAVNÍ TITULEK
 st.title(t("debate_title"))
 
+# --- ZDE JE NOVÝ VZHLED ÚVODNÍ STRÁNKY (Když se ještě nedebatuje) ---
 if not st.session_state.debate_active:
-    st.warning("Žádná aktivní debata. Přejděte do Nastavení a spusťte novou diskuzi.")
-    if st.button("Jít do nastavení"): st.switch_page("app_pages/setup.py")
+    st.info(t("tip"))
+    st.caption(t("debate_caption"))
+    
+    st.write("") # Mezera
+    
+    if st.button("⚙️ " + t("nav_setup"), type="primary", use_container_width=True):
+        st.switch_page("app_pages/setup.py")
+        
     st.stop()
 
+# --- POKUD DEBATA BĚŽÍ, POKRAČUJE ZDE ---
 available_providers = []
 if st.session_state.gemini_key.strip(): available_providers.append("Gemini")
 if st.session_state.mistral_key.strip(): available_providers.append("Mistral")
@@ -130,18 +139,15 @@ mode = st.session_state.debate_mode
 participants = []
 lang = st.session_state.lang
 
-# OSOBNOST A (Vždy AI)
 prompt_a = enhance_role_prompt(st.session_state.role_a_prompt, st.session_state.temperament_a, st.session_state.expertise_a, st.session_state.response_length, st.session_state.debate_rules, lang)
 participants.append({"name": st.session_state.role_a_name, "type": "ai", "provider": st.session_state.provider_a, "prompt": prompt_a, "avatar": "🔵"})
 
-# OSOBNOST B - OPRAVA LOGIKY
 if mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
     participants.append({"name": st.session_state.role_b_name, "type": "human", "avatar": "🧑‍💻"})
 else:
     prompt_b = enhance_role_prompt(st.session_state.role_b_prompt, st.session_state.temperament_b, st.session_state.expertise_b, st.session_state.response_length, st.session_state.debate_rules, lang)
     participants.append({"name": st.session_state.role_b_name, "type": "ai", "provider": st.session_state.provider_b, "prompt": prompt_b, "avatar": "🔴"})
 
-# OSOBNOST C - OPRAVA LOGIKY
 if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
     if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
         participants.append({"name": st.session_state.role_c_name, "type": "human", "avatar": "🧑‍💻"})
