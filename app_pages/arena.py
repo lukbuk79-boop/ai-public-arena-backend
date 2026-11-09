@@ -117,8 +117,9 @@ def save_summary_to_state_and_r2(summary_text, model_name="External AI"):
     st.session_state.summary_md = f"# Souhrn debaty: {st.session_state.current_topic}\n\n**Datum:** {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n{summary_text}\n\n<small>Použitý model: {model_name}</small>"
     st.session_state.summary_pdf = generate_pdf(st.session_state.summary_md)
     
-    counter = st.session_state.get("file_counter", "00000")
-    base = f"{counter}_souhrn"
+    # Zde využíváme celý název základu souboru (např. 00018_state_systems_comparison)
+    base_name = st.session_state.get("file_base_name", "debata")
+    base = f"{base_name}_souhrn"
     st.session_state.summary_base_name = base
     
     try:
