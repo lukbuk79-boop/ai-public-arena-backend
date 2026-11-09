@@ -5,6 +5,7 @@ from google.genai import types
 from openai import OpenAI
 from utils.config import TEMPERAMENT_PROMPTS, EXPERTISE_PROMPTS, LENGTH_PROMPTS, RULE_PROMPTS, JUDGE_GOAL_PROMPTS
 
+# PŘESNĚ PODLE VAŠEHO PŮVODNÍHO KÓDU:
 GEMINI_PREFERRED = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.8-flash"]
 NVIDIA_PREFERRED = ["nvidia/nemotron-3-ultra-550b-a55b"]
 MISTRAL_PREFERRED = ["ministral-3b-2512", "ministral-8b-2512", "codestral-2508", "mistral-large-2512"]
@@ -27,7 +28,7 @@ def get_available_mistral_models(client):
 
 def get_delay_for_provider(provider):
     if provider == "NVIDIA NIM": return 2.0
-    if provider == "Gemini": return 6.0  # Zvýšeno na 6s kvůli rate limitům (15 RPM)
+    if provider == "Gemini": return 6.0  
     if provider == "Mistral": return 3.0
     return 2.0
 
@@ -60,7 +61,6 @@ def generate_filename_from_topic(topic, call_ai_func, available_providers, **kwa
         except Exception: continue
     return "debata"
 
-# Univerzální funkce pro volání AI
 def call_ai(system_prompt, user_prompt, provider, gemini_client=None, mistral_client=None, nim_client=None, gemini_models=None, mistral_models=None):
     full_prompt = f"{system_prompt}\n\n---\n\n{user_prompt}"
     if provider == "Gemini" and gemini_client:
