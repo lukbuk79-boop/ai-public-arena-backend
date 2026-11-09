@@ -130,27 +130,27 @@ mode = st.session_state.debate_mode
 participants = []
 lang = st.session_state.lang
 
+# OSOBNOST A (Vždy AI)
 prompt_a = enhance_role_prompt(st.session_state.role_a_prompt, st.session_state.temperament_a, st.session_state.expertise_a, st.session_state.response_length, st.session_state.debate_rules, lang)
 participants.append({"name": st.session_state.role_a_name, "type": "ai", "provider": st.session_state.provider_a, "prompt": prompt_a, "avatar": "🔵"})
 
-if mode == "ai_vs_human":
+# OSOBNOST B - OPRAVA LOGIKY
+if mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
     participants.append({"name": st.session_state.role_b_name, "type": "human", "avatar": "🧑‍💻"})
 else:
     prompt_b = enhance_role_prompt(st.session_state.role_b_prompt, st.session_state.temperament_b, st.session_state.expertise_b, st.session_state.response_length, st.session_state.debate_rules, lang)
     participants.append({"name": st.session_state.role_b_name, "type": "ai", "provider": st.session_state.provider_b, "prompt": prompt_b, "avatar": "🔴"})
 
-if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human"]:
-    if mode == "ai_vs_ai_vs_human":
+# OSOBNOST C - OPRAVA LOGIKY
+if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
+    if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
         participants.append({"name": st.session_state.role_c_name, "type": "human", "avatar": "🧑‍💻"})
     else:
         prompt_c = enhance_role_prompt(st.session_state.role_c_prompt, st.session_state.temperament_c, st.session_state.expertise_c, st.session_state.response_length, st.session_state.debate_rules, lang)
         participants.append({"name": st.session_state.role_c_name, "type": "ai", "provider": st.session_state.provider_c, "prompt": prompt_c, "avatar": "🟢"})
-elif mode == "ai_vs_human_vs_human":
-    participants.append({"name": st.session_state.role_c_name, "type": "human", "avatar": "🧑‍💻"})
 
 st.markdown(f"### 📌 Téma: *{st.session_state.current_topic}*")
 
-# BEZPEČNÁ KONTROLA
 if st.session_state.get("topic_summary"):
     st.info(st.session_state.topic_summary)
 
