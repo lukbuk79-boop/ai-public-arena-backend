@@ -44,7 +44,8 @@ def init_state():
         "setup_step": 1, "debate_active": False, "debate_finished": False, "current_round": 0, "turn_index": 0,
         "full_history": [], "final_summary": "", "model_mod_used": "", "current_topic": "", 
         "md_content": "", "pdf_bytes": b"", "file_base_name": "debata",
-        "critique_md": "", "critique_pdf": b"", "critique_base": "", "show_critique_ui": False
+        "critique_md": "", "critique_pdf": b"", "critique_base": "", "show_critique_ui": False,
+        "is_configured": False  # NOVINKA: Hlídá, zda je nastavení uloženo
     }
     for key, default in form_defaults.items():
         if key not in st.session_state: st.session_state[key] = default
