@@ -41,9 +41,10 @@ with st.sidebar:
         js = f"""
         <script>
             try {{
-                window.parent.localStorage.setItem('arena_gemini', {g});
-                window.parent.localStorage.setItem('arena_nim', {n});
-                window.parent.localStorage.setItem('arena_mistral', {m});
+                const storage = window.parent.localStorage || window.localStorage;
+                storage.setItem('arena_gemini', {g});
+                storage.setItem('arena_nim', {n});
+                storage.setItem('arena_mistral', {m});
             }} catch(e) {{ console.error("LocalStorage blocked", e); }}
         </script>
         """
