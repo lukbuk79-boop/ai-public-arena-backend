@@ -23,9 +23,10 @@ def init_state():
                 const m = localStorage.getItem('arena_mistral');
                 if (g || n || m) {
                     const url = new URL(window.parent.location.href);
-                    if (g) url.searchParams.set('g_key', g);
-                    if (n) url.searchParams.set('n_key', n);
-                    if (m) url.searchParams.set('m_key', m);
+                    // OPRAVA: Pokud je klíč prázdný, z URL se vymaže. Pokud existuje, nastaví se.
+                    if (g) url.searchParams.set('g_key', g); else url.searchParams.delete('g_key');
+                    if (n) url.searchParams.set('n_key', n); else url.searchParams.delete('n_key');
+                    if (m) url.searchParams.set('m_key', m); else url.searchParams.delete('m_key');
                     window.parent.location.href = url.toString();
                 }
             </script>
@@ -41,7 +42,8 @@ def init_state():
         "temperament_a": "neutral", "temperament_b": "neutral", "expertise_a": "professor", "expertise_b": "professor",
         "response_length": "medium", "debate_goal": "verdict", "debate_rules": ["no_repeat", "cite_sources", "admit_ignorance"],
         "memory_limit": 10, "setup_step": 1, "debate_active": False, "full_history": [], "final_summary": "",
-        "model_mod_used": "", "current_topic": "", "md_content": "", "pdf_bytes": b"", "file_base_name": "debata"
+        "model_mod_used": "", "current_topic": "", "md_content": "", "pdf_bytes": b"", "file_base_name": "debata",
+        "critique_md": "", "critique_pdf": b"", "critique_base": "", "show_critique_ui": False
     }
     for key, default in form_defaults.items():
         if key not in st.session_state: st.session_state[key] = default
