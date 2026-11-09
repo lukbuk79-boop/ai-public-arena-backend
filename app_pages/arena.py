@@ -130,7 +130,7 @@ if not st.session_state.debate_active:
     st.caption(t("debate_caption"))
     st.divider()
 
-    if st.button("⚙️ " + t("nav_setup"), type="primary"):
+    if st.button(t("nav_setup"), type="primary"):
         st.switch_page("app_pages/setup.py")
     st.stop()
 
