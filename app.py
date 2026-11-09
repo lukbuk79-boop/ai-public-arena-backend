@@ -45,9 +45,8 @@ with st.sidebar:
     st.divider()
     st.header(t("api_keys"))
     
-    # Tady se načítá z trvalé paměti (value=...)
     temp_g = st.text_input(f"🔑 Gemini {t('api_keys')}:", type="password", value=st.session_state.saved_gemini, placeholder="AIzaSy...")
-    st.session_state.saved_gemini = temp_g # Okamžité uložení
+    st.session_state.saved_gemini = temp_g 
     
     temp_m = st.text_input(f"🔑 Mistral {t('api_keys')}:", type="password", value=st.session_state.saved_mistral, placeholder="...")
     st.session_state.saved_mistral = temp_m
@@ -55,7 +54,6 @@ with st.sidebar:
     temp_n = st.text_input(f"🔑 NVIDIA {t('api_keys')}:", type="password", value=st.session_state.saved_nim, placeholder="nvapi-...")
     st.session_state.saved_nim = temp_n
 
-    # Namapování pro zbytek aplikace (arena.py, setup.py), aby nemusel vědět o saved_...
     st.session_state.gemini_key = st.session_state.saved_gemini
     st.session_state.mistral_key = st.session_state.saved_mistral
     st.session_state.nim_key = st.session_state.saved_nim
@@ -67,9 +65,10 @@ with st.sidebar:
     st.divider()
     st.caption("© 2026 Lukáš Buchvalek")
 
+# ZDE JE ZMĚNA: Aréna je nyní první, takže se načte jako výchozí
 pg = st.navigation([
-    st.Page("app_pages/setup.py", title=t("nav_setup"), icon=":material/settings:"),
     st.Page("app_pages/arena.py", title=t("nav_arena"), icon=":material/swords:"),
+    st.Page("app_pages/setup.py", title=t("nav_setup"), icon=":material/settings:"),
     st.Page("app_pages/help.py", title=t("nav_help"), icon=":material/help:"),
 ])
 
