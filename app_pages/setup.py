@@ -16,13 +16,12 @@ def apply_preset_callback():
     st.session_state.debate_rules = list(cfg["debate_rules"])
 
 def randomize_persona(prefix):
-    # OPRAVA: Změníme hodnotu jak v paměti, tak v klíči, který je svázán s widgetem
-    new_t = random.choice(TEMPERAMENT_KEYS)
-    new_e = random.choice(EXPERTISE_KEYS)
-    st.session_state[f"temperament_{prefix}"] = new_t
-    st.session_state[f"expertise_{prefix}"] = new_e
-    st.session_state[f"w_temperament_{prefix}"] = new_t
-    st.session_state[f"w_expertise_{prefix}"] = new_e
+    # OPRAVA: Změníme hodnotu v paměti a SMAŽEME klíč widgetu, aby se donutil načíst novou hodnotu
+    st.session_state[f"temperament_{prefix}"] = random.choice(TEMPERAMENT_KEYS)
+    st.session_state[f"expertise_{prefix}"] = random.choice(EXPERTISE_KEYS)
+    
+    if f"w_temperament_{prefix}" in st.session_state: del st.session_state[f"w_temperament_{prefix}"]
+    if f"w_expertise_{prefix}" in st.session_state: del st.session_state[f"w_expertise_{prefix}"]
 
 def go_next():
     st.session_state.setup_step += 1
