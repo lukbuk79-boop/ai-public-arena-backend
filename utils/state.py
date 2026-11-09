@@ -53,3 +53,10 @@ def init_state():
     }
     for key, default in form_defaults.items():
         if key not in st.session_state: st.session_state[key] = default
+
+    # ZÁCHRANNÁ SÍŤ: Pokud Streamlit smazal hodnoty z předchozích kroků, obnovíme je.
+    if "saved_steps" in st.session_state:
+        for step_data in st.session_state.saved_steps.values():
+            for k, v in step_data.items():
+                if k not in st.session_state:
+                    st.session_state[k] = v
