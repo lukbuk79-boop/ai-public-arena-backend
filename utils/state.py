@@ -8,7 +8,10 @@ def init_state():
     if "g_key" in st.query_params: st.session_state.gemini_key = st.query_params["g_key"]; _restored_any_key = True
     if "n_key" in st.query_params: st.session_state.nim_key = st.query_params["n_key"]; _restored_any_key = True
     if "m_key" in st.query_params: st.session_state.mistral_key = st.query_params["m_key"]; _restored_any_key = True
-    if _restored_any_key: st.query_params.clear()
+    
+    # Pokud jsme načetli klíče z URL, hned je zase uložíme do localStorage pro příště
+    if _restored_any_key: 
+        st.query_params.clear()
 
     for key in ["gemini_key", "nim_key", "mistral_key"]:
         if key not in st.session_state: st.session_state[key] = ""
@@ -17,16 +20,18 @@ def init_state():
         if not st.session_state.gemini_key and not st.session_state.nim_key and not st.session_state.mistral_key:
             components.html("""
             <script>
-                const g = localStorage.getItem('arena_gemini');
-                const n = localStorage.getItem('arena_nim');
-                const m = localStorage.getItem('arena_mistral');
-                if (g || n || m) {
-                    const url = new URL(window.parent.location.href);
-                    if (g) url.searchParams.set('g_key', g); else url.searchParams.delete('g_key');
-                    if (n) url.searchParams.set('n_key', n); else url.searchParams.delete('n_key');
-                    if (m) url.searchParams.set('m_key', m); else url.searchParams.delete('m_key');
-                    window.parent.location.href = url.toString();
-                }
+                try {
+                    const g = window.parent.localStorage.getItem('arena_gemini');
+                    const n = window.parent.localStorage.getItem('arena_nim');
+                    const m = window.parent.localStorage.getItem('arena_mistral');
+                    if (g || n || m) {
+                        const url = new URL(window.parent.location.href);
+                        if (g) url.searchParams.set('g_key', g); else url.searchParams.delete('g_key');
+                        if (n) url.searchParams.set('n_key', n); else url.searchParams.delete('n_key');
+                        if (m) url.searchParams.set('m_key', m); else url.searchParams.delete('m_key');
+                        window.parent.location.href = url.toString();
+                    }
+                } catch(e) { console.error("LocalStorage blocked", e); }
             </script>
             """, height=0)
         st.session_state.local_storage_checked = True
