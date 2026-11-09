@@ -6,15 +6,27 @@ from datetime import datetime
 from google import genai
 from google.genai import types
 from openai import OpenAI
+
+# Importy z našich nových modulů
 from utils.config import t
 from utils.state import init_state
-from utils.ai_providers import get_available_gemini_models, get_available_mistral_models, get_delay_for_provider, enhance_role_prompt, build_judge_prompt, generate_filename_from_topic, call_ai, call_critique_api
+from utils.ai_providers import (
+    get_available_gemini_models, 
+    get_available_mistral_models, 
+    get_delay_for_provider, 
+    enhance_role_prompt, 
+    build_judge_prompt, 
+    generate_filename_from_topic, 
+    call_ai, 
+    call_critique_api,
+    NVIDIA_PREFERRED
+)
 from utils.pdf_export import generate_pdf
 from utils.storage import get_next_counter, get_r2_client, save_critique_result, reset_critique_state
 
 init_state()
 
-# --- VYkreslovací funkce ---
+# --- VYKRESLOVACÍ FUNKCE ---
 def render_downloads():
     base_name = st.session_state.get("file_base_name", "debata")
     md_b64 = base64.b64encode(st.session_state.md_content.encode('utf-8')).decode('utf-8')
@@ -30,7 +42,9 @@ def render_downloads():
 def render_critique_ui(available_providers_list):
     if not st.session_state.md_content: return
     st.divider(); st.subheader(t("critique_title")); st.caption(t("critique_caption"))
+    
     def start_critique(): st.session_state.show_critique_ui = True
+    
     if not st.session_state.show_critique_ui and not st.session_state.critique_md:
         st.button(t("start_critique"), type="primary", use_container_width=True, on_click=start_critique)
     if not (st.session_state.show_critique_ui or st.session_state.critique_md): return
@@ -105,10 +119,13 @@ gemini_models = get_available_gemini_models(gemini_client) if gemini_client else
 mistral_models = get_available_mistral_models(mistral_client) if mistral_client else []
 nvidia_models = NVIDIA_PREFERRED if nim_client else []
 
-# Obalení pro snadné volání
+# Obalení pro snadné volání (předáváme klienty a modely jako parametry)
 ai_kwargs = {
-    "gemini_client": gemini_client, "mistral_client": mistral_client, "nim_client": nim_client,
-    "gemini_models": gemini_models, "mistral_models": mistral_models
+    "gemini_client": gemini_client, 
+    "mistral_client": mistral_client, 
+    "nim_client": nim_client,
+    "gemini_models": gemini_models, 
+    "mistral_models": mistral_models
 }
 
 # Pokud debata ještě není vygenerovaná (přišli jsme ze setupu), spustíme ji
@@ -148,7 +165,8 @@ if not st.session_state.full_history:
     for r in range(st.session_state.max_rounds):
         progress_bar.progress((r + 1) / st.session_state.max_rounds)
         time.sleep(get_delay_for_provider(st.session_state.provider_b))
-        context_b = debate_context_intro + "Context:\n" + "\n".join([f"{s}: {t}" for s, t, m in st.session_state.full_history[-memory_limit:]]) + f"\nNyní jsi na řadě ty ({st.session_state.role_b_name})."
+        
+        context_b = debate_context_intro + "Context:\n" + "\n".join([f"{s}: {txt}" for s, txt, m in st.session_state.full_history[-memory_limit:]]) + f"\nNyní jsi na řadě ty ({st.session_state.role_b_name})."
         with chat_container.chat_message("assistant", avatar="🔴"):
             st.markdown(f"**{st.session_state.role_b_name}:**")
             with st.spinner("Reaguji..."):
@@ -158,7 +176,7 @@ if not st.session_state.full_history:
 
         if r < st.session_state.max_rounds - 1:
             time.sleep(get_delay_for_provider(st.session_state.provider_a))
-            context_a = debate_context_intro + "Context:\n" + "\n".join([f"{s}: {t}" for s, t, m in st.session_state.full_history[-memory_limit:]]) + f"\nNyní jsi na řadě ty ({st.session_state.role_a_name})."
+            context_a = debate_context_intro + "Context:\n" + "\n".join([f"{s}: {txt}" for s, txt, m in st.session_state.full_history[-memory_limit:]]) + f"\nNyní jsi na řadě ty ({st.session_state.role_a_name})."
             with chat_container.chat_message("user", avatar="🔵"):
                 st.markdown(f"**{st.session_state.role_a_name}:**")
                 with st.spinner("Reaguji..."):
@@ -169,7 +187,7 @@ if not st.session_state.full_history:
     # 4. Rozhodčí
     progress_bar.progress(1.0)
     time.sleep(get_delay_for_provider(st.session_state.provider_mod))
-    summary_context = f"TÉMA: '{st.session_state.current_topic}'\n\n" + "\n".join([f"{s}: {t}" for s, t, m in st.session_state.full_history])
+    summary_context = f"TÉMA: '{st.session_state.current_topic}'\n\n" + "\n".join([f"{s}: {txt}" for s, txt, m in st.session_state.full_history])
     base_judge_prompt = "Jsi přísný a nestranný rozhodčí. Zhodnoť průběh debaty."
     judge_prompt = build_judge_prompt(base_judge_prompt, st.session_state.debate_goal, lang)
 
