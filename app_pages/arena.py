@@ -34,13 +34,18 @@ def render_downloads():
 def render_critique_ui(available_providers_list):
     if not st.session_state.md_content: return
     st.divider(); st.subheader(t("critique_title")); st.caption(t("critique_caption"))
+    
     def start_critique(): st.session_state.show_critique_ui = True
+    
     if not st.session_state.show_critique_ui and not st.session_state.critique_md:
         st.button(t("start_critique"), type="primary", use_container_width=True, on_click=start_critique)
     if not (st.session_state.show_critique_ui or st.session_state.critique_md): return
+    
     tab_api, tab_ext = st.tabs([t("tab_api"), t("tab_ext")])
+
     with tab_api:
-        if not available_providers_list: st.warning(t("no_key_error"))
+        if not available_providers_list:
+            st.warning(t("no_key_error").replace("debate", "critique").replace("diskuze", "kritiky"))
         else:
             options = [f"{p} (API)" for p in available_providers_list]
             selected = st.selectbox(t("provider_select"), options, key="critique_api_provider")
@@ -52,13 +57,48 @@ def render_critique_ui(available_providers_list):
                         critique_text, model_used = call_critique_api("Jsi nezávislý recenzent.", f"Zhodnoť diskuzi: {st.session_state.md_content}", provider, keys)
                         ok, err, base_name = save_critique_result(critique_text, model_used)
                         if ok: st.success(f"✅ Uloženo na R2.")
+                        else: st.warning(f"⚠️ Uloženo lokálně, R2 selhalo: {err}")
                     except Exception as e: st.error(f"Error: {e}")
+
     with tab_ext:
         st.info(t("ext_info"))
-        # Zde zkráceno pro přehlednost, funguje stejně jako dřív
-        pass
+
+        pdf_b64 = base64.b64encode(st.session_state.pdf_bytes).decode('utf-8') if st.session_state.pdf_bytes else ""
+        st.markdown(f'<a href="data:application/pdf;base64,{pdf_b64}" download="{st.session_state.file_base_name}.pdf" style="display:block; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:6px; font-weight:600; margin-bottom: 15px;">{t("ext_step1")}</a>', unsafe_allow_html=True)
+
+        st.markdown(f"**{t('ext_step2')}**")
+        chats = {
+            "ChatGPT": "https://chatgpt.com/", "Claude": "https://claude.ai/new",
+            "Gemini": "https://gemini.google.com/app", "Perplexity": "https://www.perplexity.ai/",
+            "DeepSeek": "https://chat.deepseek.com/", "Copilot": "https://copilot.microsoft.com/",
+            "Le Chat (Mistral)": "https://chat.mistral.ai/chat"
+        }
+        cols = st.columns(4)
+        for i, (name, url) in enumerate(chats.items()):
+            cols[i % 4].markdown(f'<a href="{url}" target="_blank" style="display:block; text-align:center; padding:8px; background:#e2e8f0; color:#2d3748; text-decoration:none; border-radius:5px; margin-bottom:5px; font-size:14px;">{name}</a>', unsafe_allow_html=True)
+
+        st.markdown(f"**{t('ext_step3')}**")
+        if st.session_state.lang == "cs":
+            prompt_for_ext = f"Přečti přiložené PDF s diskuzí na téma: '{st.session_state.current_topic}'. Proveď nezávislou kritiku: zhodnoť relevanci, kvalitu argumentace obou stran a recenzuj verdikt rozhodčího. Navrhni vyváženější verdikt, pokud s ním nesouhlasíš."
+        else:
+            prompt_for_ext = f"Read the attached PDF with the debate on the topic: '{st.session_state.current_topic}'. Provide an independent critique: evaluate the relevance, the quality of arguments on both sides, and review the judge's verdict. Propose a more balanced verdict if you disagree with it."
+        st.code(prompt_for_ext, language=None)
+
+        st.markdown(f"**{t('ext_step4')}**")
+        pasted = st.text_area("Result:", height=150, key="critique_pasted_ext", label_visibility="collapsed", placeholder="Paste the critique result here...")
+        if st.button(t("save_critique"), key="btn_save_ext"):
+            if pasted.strip():
+                ok, err, base_name = save_critique_result(pasted, "External AI (manual)")
+                if ok: st.success(f"✅ Uloženo jako `{base_name}`.")
+                else: st.warning(f"⚠️ Uloženo lokálně, R2 selhalo: {err}")
+            else:
+                st.error("Nejprve vložte text kritiky.")
+
     if st.session_state.critique_md:
         st.divider(); st.subheader(t("ready_critique"))
+        md_b64 = base64.b64encode(st.session_state.critique_md.encode('utf-8')).decode('utf-8')
+        pdf_b64 = base64.b64encode(st.session_state.critique_pdf).decode('utf-8')
+        st.markdown(f'<div style="display:flex; gap:10px; margin:10px 0;"><a href="data:application/octet-stream;base64,{md_b64}" download="{st.session_state.critique_base}.md" style="flex:1; text-align:center; padding:10px; background:#f0f2f6; color:#31333f; text-decoration:none; border-radius:5px; border:1px solid #d6d6d6;">{t("dl_critique_md")}</a><a href="data:application/pdf;base64,{pdf_b64}" download="{st.session_state.critique_base}.pdf" style="flex:1; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:5px;">{t("dl_critique_pdf")}</a></div>', unsafe_allow_html=True)
         with st.expander(t("preview_critique"), expanded=False): st.markdown(st.session_state.critique_md)
 
 st.title(t("debate_title"))
@@ -86,23 +126,19 @@ ai_kwargs = {
     "gemini_models": gemini_models, "mistral_models": mistral_models
 }
 
-# --- SESTAVENÍ ÚČASTNÍKŮ ---
 mode = st.session_state.debate_mode
 participants = []
 lang = st.session_state.lang
 
-# A (Vždy AI)
 prompt_a = enhance_role_prompt(st.session_state.role_a_prompt, st.session_state.temperament_a, st.session_state.expertise_a, st.session_state.response_length, st.session_state.debate_rules, lang)
 participants.append({"name": st.session_state.role_a_name, "type": "ai", "provider": st.session_state.provider_a, "prompt": prompt_a, "avatar": "🔵"})
 
-# B (AI nebo Human)
 if mode == "ai_vs_human":
     participants.append({"name": st.session_state.role_b_name, "type": "human", "avatar": "🧑‍💻"})
 else:
     prompt_b = enhance_role_prompt(st.session_state.role_b_prompt, st.session_state.temperament_b, st.session_state.expertise_b, st.session_state.response_length, st.session_state.debate_rules, lang)
     participants.append({"name": st.session_state.role_b_name, "type": "ai", "provider": st.session_state.provider_b, "prompt": prompt_b, "avatar": "🔴"})
 
-# C (AI nebo Human)
 if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human"]:
     if mode == "ai_vs_ai_vs_human":
         participants.append({"name": st.session_state.role_c_name, "type": "human", "avatar": "🧑‍💻"})
@@ -112,29 +148,29 @@ if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human"]:
 elif mode == "ai_vs_human_vs_human":
     participants.append({"name": st.session_state.role_c_name, "type": "human", "avatar": "🧑‍💻"})
 
-# --- VYKRESLENÍ HISTORIE ---
 st.markdown(f"### 📌 Téma: *{st.session_state.current_topic}*")
+
+if st.session_state.topic_summary:
+    st.info(st.session_state.topic_summary)
+
 for i, (sender, text, model) in enumerate(st.session_state.full_history):
     is_human = model == "Human"
-    avatar = "🧑‍💻" if is_human else participants[i % len(participants)]["avatar"]
+    # Najdeme správný avatar podle jména
+    avatar = next((p["avatar"] for p in participants if p["name"] == sender), "🔵")
     with st.chat_message("user" if is_human else "assistant", avatar=avatar):
         st.markdown(f"**{sender}:**\n\n{text}")
         if not is_human: st.caption(f"🤖 `{model}`")
 
-# --- STAVOVÝ AUTOMAT ---
 if not st.session_state.debate_finished:
-    # Smyčka pro AI tahy, dokud nenarazíme na člověka
     while st.session_state.current_round < st.session_state.max_rounds:
         current_speaker = participants[st.session_state.turn_index]
         
         if current_speaker["type"] == "human":
-            break # Přerušíme smyčku a čekáme na vstup od člověka
+            break
             
-        # Provádíme AI tah
         with st.spinner(f"{current_speaker['name']} přemýšlí..."):
             time.sleep(get_delay_for_provider(current_speaker["provider"]))
             
-            # Sestavení kontextu
             context = f"Topic: '{st.session_state.current_topic}'.\n\nContext:\n"
             context += "\n".join([f"{s}: {txt}" for s, txt, m in st.session_state.full_history[-st.session_state.memory_limit:]])
             context += f"\nNyní jsi na řadě ty ({current_speaker['name']}). Reaguj na argumenty ostatních."
@@ -146,22 +182,19 @@ if not st.session_state.debate_finished:
             
             st.session_state.full_history.append((current_speaker["name"], resp, mod))
             
-            # Vykreslíme novou zprávu
             with st.chat_message("assistant", avatar=current_speaker["avatar"]):
                 st.markdown(f"**{current_speaker['name']}:**\n\n{resp}")
                 st.caption(f"🤖 `{mod}`")
 
-        # Posun tahu
         st.session_state.turn_index += 1
         if st.session_state.turn_index >= len(participants):
             st.session_state.turn_index = 0
             st.session_state.current_round += 1
 
-    # Po ukončení while smyčky zkontrolujeme, proč skončila
     if st.session_state.current_round >= st.session_state.max_rounds:
-        # --- ROZHODČÍ ---
         st.session_state.debate_finished = True
         time.sleep(get_delay_for_provider(st.session_state.provider_mod))
+        
         summary_context = f"TÉMA: '{st.session_state.current_topic}'\n\nPRŮBĚH DEBATY:\n" + "\n".join([f"{s}: {txt}" for s, txt, m in st.session_state.full_history])
         base_judge_prompt = "Jsi přísný a nestranný rozhodčí. Zhodnoť průběh debaty."
         judge_prompt = build_judge_prompt(base_judge_prompt, st.session_state.debate_goal, lang)
@@ -170,7 +203,9 @@ if not st.session_state.debate_finished:
             try:
                 final_sum, mod_mod = call_ai(judge_prompt, summary_context, st.session_state.provider_mod, **ai_kwargs)
             except Exception as e:
-                final_sum, mod_mod = f"Chyba rozhodčího: {e}", "API Error"
+                # Záloha, kdyby hlavní rozhodčí selhal
+                final_sum = f"Chyba rozhodčího: {e}"
+                mod_mod = "API Error"
 
         st.session_state.final_summary = final_sum
         st.session_state.model_mod_used = mod_mod
@@ -178,26 +213,28 @@ if not st.session_state.debate_finished:
         with st.chat_message("assistant", avatar="⚖️"):
             st.markdown(f"**{t('judge')}:**"); st.markdown(final_sum); st.caption(f"🤖 `{mod_mod}`")
 
-        # Uložení
         with st.spinner("Ukládám..."):
             md_history = "".join([f"### {s}\n{txt}\n\n<small>Model: {m}</small>\n\n---\n\n" for s, txt, m in st.session_state.full_history])
             st.session_state.md_content = f"# Debate: {st.session_state.current_topic}\n\n" + md_history + f"### {t('judge')}\n{final_sum}"
             st.session_state.pdf_bytes = generate_pdf(st.session_state.md_content)
+            
             try: counter = get_next_counter()
             except: counter = "00000"
+                
             filename_base = generate_filename_from_topic(st.session_state.current_topic, call_ai, available_providers, **ai_kwargs)
             full_base = f"{counter}_{filename_base}"
             st.session_state.file_base_name = full_base
+
             try:
                 s3 = get_r2_client(); bucket = st.secrets["R2_BUCKET_NAME"]
                 s3.put_object(Bucket=bucket, Key=f"markdown/{full_base}.md", Body=st.session_state.md_content.encode("utf-8"))
                 s3.put_object(Bucket=bucket, Key=f"pdf/{full_base}.pdf", Body=st.session_state.pdf_bytes)
                 st.success("✅ Uloženo na R2.")
             except Exception as e: st.error(f"R2 Error: {e}")
+
         st.rerun()
 
     else:
-        # --- JE NA ŘADĚ ČLOVĚK ---
         current_speaker = participants[st.session_state.turn_index]
         prompt_text = f"{current_speaker['name']}, {t('human_turn_waiting')}"
         human_input = st.chat_input(prompt_text)
@@ -211,7 +248,6 @@ if not st.session_state.debate_finished:
             st.rerun()
 
 else:
-    # --- DEBATA SKONČILA, VYKRESLENÍ VÝSLEDKŮ ---
     with st.chat_message("assistant", avatar="⚖️"):
         st.markdown(f"**{t('judge')}:**\n\n{st.session_state.final_summary}"); st.caption(f"🤖 `{st.session_state.model_mod_used}`")
     
