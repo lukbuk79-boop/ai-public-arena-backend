@@ -8,10 +8,10 @@ from utils.config import t
 st.set_page_config(page_title="AI Public Aréna", layout="wide")
 init_state()
 
-def auto_save_keys():
-    g = json.dumps(st.session_state.gemini_key)
-    n = json.dumps(st.session_state.nim_key)
-    m = json.dumps(st.session_state.mistral_key)
+def save_keys_to_storage():
+    g = json.dumps(st.session_state.saved_gemini)
+    n = json.dumps(st.session_state.saved_nim)
+    m = json.dumps(st.session_state.saved_mistral)
     js = f"""
     <script>
         try {{
@@ -45,13 +45,23 @@ with st.sidebar:
     st.divider()
     st.header(t("api_keys"))
     
-    # Přidán on_change=auto_save_keys pro okamžité uložení
-    st.text_input(f"🔑 Gemini {t('api_keys')}:", type="password", key="gemini_key", placeholder="AIzaSy...", on_change=auto_save_keys)
-    st.text_input(f"🔑 Mistral {t('api_keys')}:", type="password", key="mistral_key", placeholder="...", on_change=auto_save_keys)
-    st.text_input(f"🔑 NVIDIA {t('api_keys')}:", type="password", key="nim_key", placeholder="nvapi-...", on_change=auto_save_keys)
+    # Tady se načítá z trvalé paměti (value=...)
+    temp_g = st.text_input(f"🔑 Gemini {t('api_keys')}:", type="password", value=st.session_state.saved_gemini, placeholder="AIzaSy...")
+    st.session_state.saved_gemini = temp_g # Okamžité uložení
+    
+    temp_m = st.text_input(f"🔑 Mistral {t('api_keys')}:", type="password", value=st.session_state.saved_mistral, placeholder="...")
+    st.session_state.saved_mistral = temp_m
+    
+    temp_n = st.text_input(f"🔑 NVIDIA {t('api_keys')}:", type="password", value=st.session_state.saved_nim, placeholder="nvapi-...")
+    st.session_state.saved_nim = temp_n
+
+    # Namapování pro zbytek aplikace (arena.py, setup.py), aby nemusel vědět o saved_...
+    st.session_state.gemini_key = st.session_state.saved_gemini
+    st.session_state.mistral_key = st.session_state.saved_mistral
+    st.session_state.nim_key = st.session_state.saved_nim
 
     if st.button(t("save_keys"), use_container_width=True):
-        auto_save_keys()
+        save_keys_to_storage()
         st.success(t("save_keys_success"))
 
     st.divider()
