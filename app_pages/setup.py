@@ -23,11 +23,6 @@ def save_step(step):
     
     st.session_state.saved_steps[step] = {k: st.session_state.get(k) for k in keys if k in st.session_state}
 
-def load_step(step):
-    if "saved_steps" in st.session_state and step in st.session_state.saved_steps:
-        for k, v in st.session_state.saved_steps[step].items():
-            st.session_state[k] = v
-
 def apply_preset_callback():
     preset = st.session_state.preset_select
     if preset == "custom" or preset not in PRESETS: return
@@ -46,13 +41,11 @@ def randomize_persona(prefix):
 def go_next():
     save_step(st.session_state.setup_step)
     st.session_state.setup_step += 1
-    load_step(st.session_state.setup_step)
     st.rerun()
 
 def go_back():
     save_step(st.session_state.setup_step)
     st.session_state.setup_step -= 1
-    load_step(st.session_state.setup_step)
     st.rerun()
 
 available_providers = []
