@@ -1,17 +1,13 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import base64
-import json  # Přidáno pro bezpečné ukládání klíčů
+import json
 from utils.state import init_state
 from utils.config import t
 
-# Konfigurace stránky
 st.set_page_config(page_title="AI Public Aréna", layout="wide")
-
-# Inicializace paměti
 init_state()
 
-# --- SPOLEČNÝ POSTRANNÍ PANEL ---
 with st.sidebar:
     def get_image_base64(path):
         try:
@@ -21,7 +17,6 @@ with st.sidebar:
     cz_b64 = get_image_base64("cz.png")
     gb_b64 = get_image_base64("gb.png")
     
-    # Vlajky
     st.markdown(f"""
         <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 10px; margin-bottom: 20px;">
             <img src="data:image/png;base64,{cz_b64}" width="30" style="border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
@@ -29,33 +24,35 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-    # Jazyk
     lang_choice = st.radio(t("lang_name"), ["Čeština", "English"], index=0 if st.session_state.lang == "cs" else 1, horizontal=True)
     st.session_state.lang = "cs" if "Čeština" in lang_choice else "en"
 
     st.divider()
-    
-    # API Klíče
     st.header(t("api_keys"))
     
-    # OPRAVA: Použití key="..." zajistí, že Streamlit okamžitě ví o každé změně v políčku
     st.text_input(f"🔑 Gemini {t('api_keys')}:", type="password", key="gemini_key", placeholder="AIzaSy...")
     st.text_input(f"🔑 Mistral {t('api_keys')}:", type="password", key="mistral_key", placeholder="...")
     st.text_input(f"🔑 NVIDIA {t('api_keys')}:", type="password", key="nim_key", placeholder="nvapi-...")
 
     if st.button(t("save_keys"), use_container_width=True):
-        # OPRAVA: json.dumps bezpečně obalí klíče do uvozovek a ochrání je před chybami v JS
         g = json.dumps(st.session_state.gemini_key)
         n = json.dumps(st.session_state.nim_key)
         m = json.dumps(st.session_state.mistral_key)
-        js = f"<script>localStorage.setItem('arena_gemini', {g});localStorage.setItem('arena_nim', {n});localStorage.setItem('arena_mistral', {m});</script>"
+        js = f"""
+        <script>
+            try {{
+                window.parent.localStorage.setItem('arena_gemini', {g});
+                window.parent.localStorage.setItem('arena_nim', {n});
+                window.parent.localStorage.setItem('arena_mistral', {m});
+            }} catch(e) {{ console.error("LocalStorage blocked", e); }}
+        </script>
+        """
         components.html(js, height=0)
         st.success(t("save_keys_success"))
 
     st.divider()
     st.caption("© 2026 Lukáš Buchvald")
 
-# --- ROUTER ---
 pg = st.navigation([
     st.Page("app_pages/setup.py", title=t("nav_setup"), icon=":material/settings:"),
     st.Page("app_pages/arena.py", title=t("nav_arena"), icon=":material/swords:"),
