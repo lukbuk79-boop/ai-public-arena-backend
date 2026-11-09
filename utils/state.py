@@ -9,7 +9,6 @@ def init_state():
     if "n_key" in st.query_params: st.session_state.nim_key = st.query_params["n_key"]; _restored_any_key = True
     if "m_key" in st.query_params: st.session_state.mistral_key = st.query_params["m_key"]; _restored_any_key = True
     
-    # Pokud jsme načetli klíče z URL, hned je zase uložíme do localStorage pro příště
     if _restored_any_key: 
         st.query_params.clear()
 
@@ -21,9 +20,10 @@ def init_state():
             components.html("""
             <script>
                 try {
-                    const g = window.parent.localStorage.getItem('arena_gemini');
-                    const n = window.parent.localStorage.getItem('arena_nim');
-                    const m = window.parent.localStorage.getItem('arena_mistral');
+                    const storage = window.parent.localStorage || window.localStorage;
+                    const g = storage.getItem('arena_gemini');
+                    const n = storage.getItem('arena_nim');
+                    const m = storage.getItem('arena_mistral');
                     if (g || n || m) {
                         const url = new URL(window.parent.location.href);
                         if (g) url.searchParams.set('g_key', g); else url.searchParams.delete('g_key');
@@ -50,14 +50,6 @@ def init_state():
         "full_history": [], "final_summary": "", "model_mod_used": "", "current_topic": "", 
         "md_content": "", "pdf_bytes": b"", "file_base_name": "debata",
         "critique_md": "", "critique_pdf": b"", "critique_base": "", "show_critique_ui": False,
-        
-        # Skrytá paměť pro zachování stavu:
-        "cached_debate_mode": None, "cached_preset_select": None, "cached_debate_rules": None, "cached_debate_goal": None, "cached_response_length": None,
-        "cached_role_a_name": None, "cached_role_a_prompt": None, "cached_provider_a": None, "cached_temperament_a": None, "cached_expertise_a": None, "cached_input_type_a": None,
-        "cached_role_b_name": None, "cached_role_b_prompt": None, "cached_provider_b": None, "cached_temperament_b": None, "cached_expertise_b": None, "cached_input_type_b": None,
-        "cached_role_c_name": None, "cached_role_c_prompt": None, "cached_provider_c": None, "cached_temperament_c": None, "cached_expertise_c": None, "cached_input_type_c": None,
-        "cached_provider_mod": None, "cached_max_rounds": None, "cached_memory_limit": None,
-        "cached_topic_input_type": None, "cached_topic_input": None, "cached_topic_document_text": None, "cached_uploaded_files_hash": None,
     }
     for key, default in form_defaults.items():
         if key not in st.session_state: st.session_state[key] = default
