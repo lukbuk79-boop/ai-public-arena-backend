@@ -129,6 +129,11 @@ if not st.session_state.debate_active:
 
     st.caption(t("debate_caption"))
     
+    # Kontrola, zda je nastavení uloženo
+    if not st.session_state.get("is_configured", False):
+        st.warning("Nejprve prosím nastavte parametry debaty v levém postranním panelu a klikněte na '💾 Uložit nastavení'.")
+        st.stop()
+
     st.divider()
 
     st.radio(t("topic_type"), options=["manual", "upload"], format_func=lambda x: t(x), key="topic_input_type")
@@ -148,7 +153,8 @@ if not st.session_state.debate_active:
                 st.session_state.uploaded_files_hash = file_names
                 st.success(f"✅ Načteno {len(topic_files)} dokumentů.")
 
-    if st.button("🚀 " + t("start_debate"), type="primary"):
+    # Tlačítko Spustit (bez duplicitní rakety)
+    if st.button(t("start_debate"), type="primary"):
         is_valid = True
         if not st.session_state.get("topic_input", "").strip() or not st.session_state.get("role_a_name", "").strip(): is_valid = False
         if st.session_state.debate_mode != "ai_vs_human" and not st.session_state.get("role_b_name", "").strip(): is_valid = False
@@ -170,6 +176,7 @@ if not st.session_state.debate_active:
     st.stop()
 
 # --- POKUD DEBATA BĚŽÍ, POKRAČUJE ZDE ---
+# (Zbytek kódu pro vykreslení debaty zůstává beze změny)
 available_providers = []
 if st.session_state.gemini_key.strip(): available_providers.append("Gemini")
 if st.session_state.mistral_key.strip(): available_providers.append("Mistral")
