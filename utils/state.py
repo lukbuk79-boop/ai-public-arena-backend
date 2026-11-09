@@ -4,19 +4,17 @@ import streamlit.components.v1 as components
 def init_state():
     if "lang" not in st.session_state: st.session_state.lang = "cs"
     
-    # Obnovení z URL (pokud tam jsou z prohlížeče)
     _restored_any_key = False
-    if "g_key" in st.query_params: st.session_state.gemini_key = st.query_params["g_key"]; _restored_any_key = True
-    if "n_key" in st.query_params: st.session_state.nim_key = st.query_params["n_key"]; _restored_any_key = True
-    if "m_key" in st.query_params: st.session_state.mistral_key = st.query_params["m_key"]; _restored_any_key = True
+    if "g_key" in st.query_params: st.session_state.saved_gemini = st.query_params["g_key"]; _restored_any_key = True
+    if "n_key" in st.query_params: st.session_state.saved_nim = st.query_params["n_key"]; _restored_any_key = True
+    if "m_key" in st.query_params: st.session_state.saved_mistral = st.query_params["m_key"]; _restored_any_key = True
     if _restored_any_key: st.query_params.clear()
 
-    for key in ["gemini_key", "nim_key", "mistral_key"]:
+    for key in ["saved_gemini", "saved_nim", "saved_mistral"]:
         if key not in st.session_state: st.session_state[key] = ""
 
-    # Načtení z prohlížeče při prvním spuštění
     if "local_storage_checked" not in st.session_state:
-        if not st.session_state.gemini_key and not st.session_state.nim_key and not st.session_state.mistral_key:
+        if not st.session_state.saved_gemini and not st.session_state.saved_nim and not st.session_state.saved_mistral:
             components.html("""
             <script>
                 try {
@@ -35,7 +33,6 @@ def init_state():
             """, height=0)
         st.session_state.local_storage_checked = True
 
-    # Paměť pro nastavení (Wizard)
     form_defaults = {
         "debate_mode": "ai_vs_ai", "preset_select": "academic", 
         "response_length": "medium", "debate_goal": "verdict", "debate_rules": ["no_repeat", "cite_sources", "admit_ignorance"],
