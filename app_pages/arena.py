@@ -104,7 +104,7 @@ def render_critique_ui(available_providers_list):
 # HLAVNÍ TITULEK
 st.title(t("debate_title"))
 
-# --- ÚVODNÍ STRÁNKA (Pokud se ještě nedebatuje) ---
+# --- ÚVODNÍ STRÁNKA S MODRÝM BOXEM ---
 if not st.session_state.debate_active:
     if st.session_state.lang == "cs":
         st.markdown("""
@@ -126,57 +126,15 @@ if not st.session_state.debate_active:
             </p>
         </div>
         """, unsafe_allow_html=True)
-
+        
     st.caption(t("debate_caption"))
-    
-    # Kontrola, zda je nastavení uloženo
-    if not st.session_state.get("is_configured", False):
-        st.warning("Nejprve prosím nastavte parametry debaty v levém postranním panelu a klikněte na '💾 Uložit nastavení'.")
-        st.stop()
-
     st.divider()
 
-    st.radio(t("topic_type"), options=["manual", "upload"], format_func=lambda x: t(x), key="topic_input_type")
-    
-    if st.session_state.topic_input_type == "manual":
-        st.text_input(t("topic_text"), key="topic_input")
-        st.session_state.topic_document_text = ""
-    else:
-        st.text_input(t("topic_file"), key="topic_input")
-        topic_files = st.file_uploader(t("upload_topic"), type=["pdf", "md", "txt"], accept_multiple_files=True)
-        if topic_files:
-            file_names = "_".join([f.name for f in topic_files])
-            if st.session_state.get("uploaded_files_hash") != file_names:
-                full_text = ""
-                for f in topic_files: full_text += f"--- Document: {f.name} ---\n" + extract_text_from_file(f) + "\n\n"
-                st.session_state.topic_document_text = full_text
-                st.session_state.uploaded_files_hash = file_names
-                st.success(f"✅ Načteno {len(topic_files)} dokumentů.")
-
-    # Tlačítko Spustit (bez duplicitní rakety)
-    if st.button(t("start_debate"), type="primary"):
-        is_valid = True
-        if not st.session_state.get("topic_input", "").strip() or not st.session_state.get("role_a_name", "").strip(): is_valid = False
-        if st.session_state.debate_mode != "ai_vs_human" and not st.session_state.get("role_b_name", "").strip(): is_valid = False
-        if st.session_state.debate_mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and not st.session_state.get("role_c_name", "").strip(): is_valid = False
-
-        if not is_valid:
-            st.error("Vyplňte prosím všechna povinná pole v postranním panelu (jména osobností) a téma diskuze.")
-        elif st.session_state.topic_input_type == "upload" and not st.session_state.topic_document_text:
-            st.error("Nahrajte prosím alespoň jeden dokument.")
-        else:
-            st.session_state.debate_active = True
-            st.session_state.debate_finished = False
-            st.session_state.current_round = 0
-            st.session_state.turn_index = 0
-            st.session_state.full_history = []
-            st.session_state.current_topic = st.session_state.topic_input
-            st.rerun()
-            
+    if st.button("⚙️ " + t("nav_setup"), type="primary"):
+        st.switch_page("app_pages/setup.py")
     st.stop()
 
 # --- POKUD DEBATA BĚŽÍ, POKRAČUJE ZDE ---
-# (Zbytek kódu pro vykreslení debaty zůstává beze změny)
 available_providers = []
 if st.session_state.gemini_key.strip(): available_providers.append("Gemini")
 if st.session_state.mistral_key.strip(): available_providers.append("Mistral")
