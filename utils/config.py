@@ -4,6 +4,7 @@ TEXTS = {
     "cs": {
         "lang_name": "Jazyk / Language", "nav": "🧭 Navigace", "nav_arena": "⚔️ Debatní Aréna", "nav_help": "❓ Nápověda a návody", "nav_setup": "⚙️ Nastavení debaty",
         "api_keys": "🔑 API klíče", "save_keys": "💾 Uložit klíče do prohlížeče", "save_keys_success": "✅ Klíče byly uloženy do paměti prohlížeče.",
+        "clear_keys": "🧹 Vymazat klíče z paměti", "keys_warning": "🔒 Klíče jsou uloženy pouze dočasně v paměti stránky. Po zavření nebo obnovení zmizí.",
         "provider_select": "Poskytovatel", "rounds": "Počet výměn názorů (kol)", "persona_a": "Osobnost A", "persona_b": "Osobnost B", "persona_c": "Osobnost C",
         "name": "Jméno", "input_type": "Způsob zadání instrukcí", "manual": "Ručně", "upload": "Nahrát soubor", "instructions": "Instrukce",
         "moderator": "Moderátor (Rozhodčí)", "topic_type": "Způsob zadání tématu:", "topic_text": "Téma diskuze:", "topic_file": "Název diskuze (pro export):",
@@ -36,7 +37,6 @@ TEXTS = {
         "advanced_settings": "⚙️ Pokročilé nastavení", "memory_limit_label": "Paměť kontextu (posledních N replik)",
         "setup_step1": "Krok 1: Režim a pravidla debaty", "setup_step2": "Krok 2: Osobnosti diskutujících", "setup_step3": "Krok 3: Téma a spuštění",
         "next": "Další ➡️", "back": "⬅️ Zpět", "start": "🚀 Spustit arénu",
-        # NOVÉ PŘEKLADY PRO REŽIMY
         "mode_label": "Kdo bude debatovat?",
         "mode_ai_vs_ai": "🤖 AI vs AI",
         "mode_ai_vs_ai_vs_ai": "🤖 AI vs AI vs AI",
@@ -46,10 +46,54 @@ TEXTS = {
         "human_name": "Vaše jméno",
         "human_turn_prompt": "Napiš svůj argument a stiskni Enter...",
         "human_turn_waiting": "je na řadě. Napiš svůj argument:",
+        
+        # NOVÉ TEXTY PRO SOUHRN A JEDNODUCHOU DISKUZI
+        "summary_title": "📝 Souhrn debaty",
+        "summary_caption": "Vytvořte stručný souhrn hlavních shod, neshod a závěru. Pokud je k dispozici nezávislá kritika, bude do souhrnu automaticky zahrnuta.",
+        "no_key_summary": "Pro generování souhrnu musíte mít v menu zadaný alespoň jeden API klíč.",
+        "summary_provider": "Poskytovatel pro souhrn:",
+        "summary_has_critique": "ℹ️ Nezávislá kritika byla nalezena a bude do souhrnu zahrnuta.",
+        "summary_no_critique": "ℹ️ Nezávislá kritika zatím není k dispozici. Souhrn bude vytvořen pouze z průběhu debaty.",
+        "gen_summary_btn": "Generovat souhrn pomocí",
+        "summary_generating": "Vytvářím souhrn debaty...",
+        "summary_saved": "✅ Souhrn vygenerován a uložen na R2 jako",
+        "summary_save_err": "⚠️ Souhrn vygenerován, ale nepodařilo se nahrát na R2:",
+        "summary_err": "Chyba při generování souhrnu:",
+        "summary_ext_info": "Zkopírujte si průběh debaty, nechte ho shrnout externí AI (např. ChatGPT) a výsledek vložte sem. Souhrn se uloží na R2.",
+        "summary_ext_step1": "1. Stáhnout PDF s debatou",
+        "summary_ext_step2": "2. Otevřete váš oblíbený AI chat:",
+        "summary_ext_step3": "3. Použijte tento prompt (vložte ho i s PDF):",
+        "summary_ext_step4": "4. Vložte výsledný souhrn sem:",
+        "summary_ext_paste": "Výsledek ze externí AI:",
+        "summary_ext_placeholder": "Sem vložte text souhrnu...",
+        "summary_ext_save": "Uložit externí souhrn na R2",
+        "summary_ext_saved": "✅ Externí souhrn uložen jako",
+        "summary_ext_err": "⚠️ Uloženo lokálně, R2 selhalo:",
+        "summary_ready": "✅ Hotový souhrn",
+        "summary_preview": "Náhled souhrnu",
+        "summary_dl_md": "📥 Stáhnout souhrn (.md)",
+        "summary_dl_pdf": "📄 Stáhnout souhrn (.pdf)",
+        "thinking": "přemýšlí...",
+        "simple_debate": "🚀 Jednoduchá diskuze (AI vs AI)",
+        "advanced_debate": "⚙️ Pokročilá diskuze",
+        
+        # CHYBOVÉ HLÁŠKY
+        "err_persona_too_long": "⚠️ Soubor s instrukcemi je příliš dlouhý, byl zkrácen na 10 000 znaků.",
+        "err_topic_too_long": "⚠️ Celkový text je příliš dlouhý ({len} znaků). Pro účely diskuze byl zkrácen na prvních {max} znaků (cca 25 stran).",
+        "ok_docs_loaded": "✅ Načteno {len} dokumentů (zpracováno {len_full} znaků).",
+        "err_validation": "Vyplňte prosím všechna povinná pole (jména a téma).",
+        "err_no_docs": "Nahrajte prosím alespoň jeden dokument.",
+        "err_critique_empty": "Nejprve vložte text kritiky.",
+        "err_summary_empty": "Nejprve vložte text souhrnu.",
+        "err_api": "Chyba API:",
+        "allowed_persona": "Povolené formáty: .md, .txt. Maximální délka: 10 000 znaků (cca 5 stran).",
+        "allowed_topic": "Povolené formáty: .md, .txt. Maximální délka textu: 45 000 znaků (cca 25 stran).",
+        "download": "Stáhnout",
     },
     "en": {
         "lang_name": "Language / Jazyk", "nav": "🧭 Navigation", "nav_arena": "⚔️ Debate Arena", "nav_help": "❓ Help & Guides", "nav_setup": "⚙️ Debate Settings",
-        "api_keys": "🔑 API Keys", "save_keys": "💾 Save Keys in Browser", "save_keys_success": "✅ Keys have been saved in browser storage.",
+        "api_keys": "🔑 API Keys", "save_keys": "💾 Save Keys to Browser", "save_keys_success": "✅ Keys have been saved to browser memory.",
+        "clear_keys": "🧹 Clear keys from memory", "keys_warning": "🔒 Keys are stored only temporarily in page memory. They will disappear after closing or refreshing.",
         "provider_select": "Provider", "rounds": "Number of exchanges (rounds)", "persona_a": "Persona A", "persona_b": "Persona B", "persona_c": "Persona C",
         "name": "Name", "input_type": "Instruction input method", "manual": "Manual", "upload": "Upload file", "instructions": "Instructions",
         "moderator": "Moderator (Judge)", "topic_type": "Topic input method:", "topic_text": "Debate topic:", "topic_file": "Debate name (for export):",
@@ -82,7 +126,6 @@ TEXTS = {
         "advanced_settings": "⚙️ Advanced Settings", "memory_limit_label": "Context memory (last N replies)",
         "setup_step1": "Step 1: Mode & Rules", "setup_step2": "Step 2: Personas", "setup_step3": "Step 3: Topic & Start",
         "next": "Next ➡️", "back": "⬅️ Back", "start": "🚀 Start Arena",
-        # NEW TRANSLATIONS FOR MODES
         "mode_label": "Who will debate?",
         "mode_ai_vs_ai": "🤖 AI vs AI",
         "mode_ai_vs_ai_vs_ai": "🤖 AI vs AI vs AI",
@@ -91,12 +134,58 @@ TEXTS = {
         "mode_ai_vs_human_vs_human": "🤖 AI vs Human vs Human",
         "human_name": "Your Name",
         "human_turn_prompt": "Write your argument and press Enter...",
-        "human_turn_waiting": "it is your turn. Write your argument:", # Opraveno: "it is" místo "is", aby to sedělo ke jménu (např. "Karel, it is your turn...")
+        "human_turn_waiting": "it is your turn. Write your argument:",
+        
+        # NEW TEXTS FOR SUMMARY AND SIMPLE DEBATE
+        "summary_title": "📝 Debate Summary",
+        "summary_caption": "Create a brief summary of main agreements, disagreements and conclusion. If an independent critique is available, it will be included.",
+        "no_key_summary": "You must have at least one API key entered in the menu to generate a summary.",
+        "summary_provider": "Summary provider:",
+        "summary_has_critique": "ℹ️ Independent critique was found and will be included in the summary.",
+        "summary_no_critique": "ℹ️ Independent critique is not available yet. The summary will be created from the debate only.",
+        "gen_summary_btn": "Generate summary using",
+        "summary_generating": "Generating debate summary...",
+        "summary_saved": "✅ Summary generated and saved to R2 as",
+        "summary_save_err": "⚠️ Summary generated, but failed to upload to R2:",
+        "summary_err": "Error generating summary:",
+        "summary_ext_info": "Copy the debate, let an external AI (e.g. ChatGPT) summarize it, and paste the result here. The summary will be saved to R2.",
+        "summary_ext_step1": "1. Download PDF debate",
+        "summary_ext_step2": "2. Open your favorite AI chat:",
+        "summary_ext_step3": "3. Use this prompt (paste it along with the PDF):",
+        "summary_ext_step4": "4. Paste the resulting summary here:",
+        "summary_ext_paste": "Result from external AI:",
+        "summary_ext_placeholder": "Paste summary text here...",
+        "summary_ext_save": "Save external summary to R2",
+        "summary_ext_saved": "✅ External summary saved as",
+        "summary_ext_err": "⚠️ Saved locally, R2 failed:",
+        "summary_ready": "✅ Summary Ready",
+        "summary_preview": "Summary Preview",
+        "summary_dl_md": "📥 Download summary (.md)",
+        "summary_dl_pdf": "📄 Download summary (.pdf)",
+        "thinking": "is thinking...",
+        "simple_debate": "🚀 Simple Debate (AI vs AI)",
+        "advanced_debate": "⚙️ Advanced Debate",
+        
+        # ERROR MESSAGES
+        "err_persona_too_long": "⚠️ Instruction file is too long, truncated to 10,000 characters.",
+        "err_topic_too_long": "⚠️ Total text is too long ({len} chars). Truncated to first {max} chars (approx. 25 pages).",
+        "ok_docs_loaded": "✅ Loaded {len} documents (processed {len_full} chars).",
+        "err_validation": "Please fill in all required fields (names and topic).",
+        "err_no_docs": "Please upload at least one document.",
+        "err_critique_empty": "Please paste the critique text first.",
+        "err_summary_empty": "Please paste the summary text first.",
+        "err_api": "API Error:",
+        "allowed_persona": "Allowed formats: .md, .txt. Max length: 10,000 chars (approx. 5 pages).",
+        "allowed_topic": "Allowed formats: .md, .txt. Max text length: 45,000 chars (approx. 25 pages).",
+        "download": "Download",
     }
 }
 
-def t(key):
-    return TEXTS[st.session_state.lang].get(key, key)
+def t(key, **kwargs):
+    text = TEXTS[st.session_state.lang].get(key, key)
+    if kwargs:
+        return text.format(**kwargs)
+    return text
 
 PRESET_KEYS = ["academic", "aggressive", "consensus", "factcheck", "brainstorm", "dissenter", "custom"]
 TEMPERAMENT_KEYS = ["neutral", "passionate", "ironic", "empathetic", "aggressive"]
