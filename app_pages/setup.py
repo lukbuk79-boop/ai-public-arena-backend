@@ -4,8 +4,7 @@ from utils.config import t, PRESET_KEYS, TEMPERAMENT_KEYS, EXPERTISE_KEYS, LENGT
 from utils.pdf_export import extract_text_from_file
 
 # Zjištění, jaký typ debaty uživatel zvolil
-if "debate_type" not in st.session_state: st.session_state.debate_type = "advanced"
-is_simple = st.session_state.debate_type == "simple"
+is_simple = st.session_state.get("debate_type", "advanced") == "simple"
 
 # Pokud jde o jednoduchou diskuzi a jsme v kroku 1, přeskočíme na krok 2
 if is_simple and st.session_state.setup_step == 1:
@@ -46,8 +45,6 @@ def go_next():
 
 def go_back():
     st.session_state.setup_step -= 1
-    if is_simple and st.session_state.setup_step == 1:
-        st.session_state.setup_step = 1 # U jednoduché zpět na 1 nejdeme, pokud nechceme
     for k in list(st.session_state.keys()):
         if k.startswith("w_"): del st.session_state[k]
     st.rerun()
@@ -90,8 +87,11 @@ elif st.session_state.setup_step == 2:
         if f"w_provider_{p}" not in st.session_state: st.session_state[f"w_provider_{p}"] = st.session_state[f"provider_{p}"]
         if f"w_temperament_{p}" not in st.session_state: st.session_state[f"w_temperament_{p}"] = st.session_state[f"temperament_{p}"]
         if f"w_expertise_{p}" not in st.session_state: st.session_state[f"w_expertise_{p}"] = st.session_state[f"expertise_{p}"]
-        if f"w_input_type_{p}" not in st.session_state: st.session_state[f"w_input_type_{p}"] = st.session_state[f"input_type_{p}"]
         if f"w_role_{p}_prompt" not in st.session_state: st.session_state[f"w_role_{p}_prompt"] = st.session_state[f"role_{p}_prompt"]
+        
+        # Vynucení výchozí volby "Ručně" (manual)
+        if f"w_input_type_{p}" not in st.session_state: 
+            st.session_state[f"w_input_type_{p}"] = "manual"
     
     if "w_provider_mod" not in st.session_state: st.session_state.w_provider_mod = st.session_state.provider_mod
     if "w_max_rounds" not in st.session_state: st.session_state.w_max_rounds = st.session_state.max_rounds
@@ -101,13 +101,16 @@ elif st.session_state.setup_step == 2:
     st.text_input(f"{t('name')} A", key="w_role_a_name", on_change=update_state, args=("w_role_a_name", "role_a_name"))
     st.selectbox(f"{t('provider_select')} A:", select_options, key="w_provider_a", on_change=update_state, args=("w_provider_a", "provider_a"))
     
-    col_t, col_e = st.columns(2)
-    with col_t: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), key="w_temperament_a", on_change=update_state, args=("w_temperament_a", "temperament_a"))
-    with col_e: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="w_expertise_a", on_change=update_state, args=("w_expertise_a", "expertise_a"))
+    # Skrytí Temperamentu a Expertizy v jednoduché verzi
+    if not is_simple:
+        col_t, col_e = st.columns(2)
+        with col_t: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), key="w_temperament_a", on_change=update_state, args=("w_temperament_a", "temperament_a"))
+        with col_e: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="w_expertise_a", on_change=update_state, args=("w_expertise_a", "expertise_a"))
+        st.button(t("random_button"), key="random_a", on_click=randomize_persona, args=("a",), use_container_width=True)
     
-    st.button(t("random_button"), key="random_a", on_click=randomize_persona, args=("a",), use_container_width=True)
+    # Vynucení indexu 0 pro "Ručně"
+    st.radio(f"{t('input_type')} A:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_a", on_change=update_state, args=("w_input_type_a", "input_type_a"), index=0 if st.session_state.w_input_type_a == "manual" else 1)
     
-    st.radio(f"{t('input_type')} A:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_a", on_change=update_state, args=("w_input_type_a", "input_type_a"))
     if st.session_state.w_input_type_a == "manual": 
         st.text_area(f"{t('instructions')} A", key="w_role_a_prompt", on_change=update_state, args=("w_role_a_prompt", "role_a_prompt"), height=150)
     else:
@@ -131,12 +134,13 @@ elif st.session_state.setup_step == 2:
         st.text_input(f"{t('name')} B", key="w_role_b_name", on_change=update_state, args=("w_role_b_name", "role_b_name"))
         st.selectbox(f"{t('provider_select')} B:", select_options, key="w_provider_b", on_change=update_state, args=("w_provider_b", "provider_b"))
         
-        col_t2, col_e2 = st.columns(2)
-        with col_t2: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), key="w_temperament_b", on_change=update_state, args=("w_temperament_b", "temperament_b"))
-        with col_e2: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="w_expertise_b", on_change=update_state, args=("w_expertise_b", "expertise_b"))
+        if not is_simple:
+            col_t2, col_e2 = st.columns(2)
+            with col_t2: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), key="w_temperament_b", on_change=update_state, args=("w_temperament_b", "temperament_b"))
+            with col_e2: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="w_expertise_b", on_change=update_state, args=("w_expertise_b", "expertise_b"))
+            st.button(t("random_button"), key="random_b", on_click=randomize_persona, args=("b",), use_container_width=True)
         
-        st.button(t("random_button"), key="random_b", on_click=randomize_persona, args=("b",), use_container_width=True)
-        st.radio(f"{t('input_type')} B:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_b", on_change=update_state, args=("w_input_type_b", "input_type_b"))
+        st.radio(f"{t('input_type')} B:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_b", on_change=update_state, args=("w_input_type_b", "input_type_b"), index=0 if st.session_state.w_input_type_b == "manual" else 1)
         
         if st.session_state.w_input_type_b == "manual": 
             st.text_area(f"{t('instructions')} B", key="w_role_b_prompt", on_change=update_state, args=("w_role_b_prompt", "role_b_prompt"), height=150)
@@ -166,7 +170,7 @@ elif st.session_state.setup_step == 2:
             with col_e3: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="w_expertise_c", on_change=update_state, args=("w_expertise_c", "expertise_c"))
             
             st.button(t("random_button"), key="random_c", on_click=randomize_persona, args=("c",), use_container_width=True)
-            st.radio(f"{t('input_type')} C:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_c", on_change=update_state, args=("w_input_type_c", "input_type_c"))
+            st.radio(f"{t('input_type')} C:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_c", on_change=update_state, args=("w_input_type_c", "input_type_c"), index=0 if st.session_state.w_input_type_c == "manual" else 1)
             
             if st.session_state.w_input_type_c == "manual": 
                 st.text_area(f"{t('instructions')} C", key="w_role_c_prompt", on_change=update_state, args=("w_role_c_prompt", "role_c_prompt"), height=150)
@@ -196,7 +200,7 @@ elif st.session_state.setup_step == 3:
     if "w_topic_input_type" not in st.session_state: st.session_state.w_topic_input_type = st.session_state.topic_input_type
     if "w_topic_input" not in st.session_state: st.session_state.w_topic_input = st.session_state.topic_input
 
-    st.radio(t("topic_type"), options=["manual", "upload"], format_func=lambda x: t(x), key="w_topic_input_type", on_change=update_state, args=("w_topic_input_type", "topic_input_type"))
+    st.radio(t("topic_type"), options=["manual", "upload"], format_func=lambda x: t(x), key="w_topic_input_type", on_change=update_state, args=("w_topic_input_type", "topic_input_type"), index=0 if st.session_state.w_topic_input_type == "manual" else 1)
     
     if st.session_state.w_topic_input_type == "manual":
         st.text_area(t("topic_text"), key="w_topic_input", on_change=update_state, args=("w_topic_input", "topic_input"), height=250)
