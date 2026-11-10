@@ -47,7 +47,6 @@ TEXTS = {
         "human_turn_prompt": "Napiš svůj argument a stiskni Enter...",
         "human_turn_waiting": "je na řadě. Napiš svůj argument:",
         
-        # NOVÉ TEXTY PRO SOUHRN A JEDNODUCHOU DISKUZI
         "summary_title": "📝 Souhrn debaty",
         "summary_caption": "Vytvořte stručný souhrn hlavních shod, neshod a závěru. Pokud je k dispozici nezávislá kritika, bude do souhrnu automaticky zahrnuta.",
         "no_key_summary": "Pro generování souhrnu musíte mít v menu zadaný alespoň jeden API klíč.",
@@ -77,7 +76,6 @@ TEXTS = {
         "simple_debate": "🚀 Jednoduchá diskuze (AI vs AI)",
         "advanced_debate": "⚙️ Pokročilá diskuze",
         
-        # CHYBOVÉ HLÁŠKY
         "err_persona_too_long": "⚠️ Soubor s instrukcemi je příliš dlouhý, byl zkrácen na 10 000 znaků.",
         "err_topic_too_long": "⚠️ Celkový text je příliš dlouhý ({len} znaků). Pro účely diskuze byl zkrácen na prvních {max} znaků (cca 25 stran).",
         "ok_docs_loaded": "✅ Načteno {len} dokumentů (zpracováno {len_full} znaků).",
@@ -89,6 +87,16 @@ TEXTS = {
         "allowed_persona": "Povolené formáty: .md, .txt. Maximální délka: 10 000 znaků (cca 5 stran).",
         "allowed_topic": "Povolené formáty: .md, .txt. Maximální délka textu: 45 000 znaků (cca 25 stran).",
         "download": "Stáhnout",
+        "human": "Člověk",
+        "max_7": "(max 7)",
+        "topic": "Téma",
+        "saved_to_r2": "✅ Uloženo na R2.",
+        "err_r2": "❌ Nahrání na R2 selhalo: {err}",
+        "err_no_provider_critique": "Pro generování kritiky musíte mít v menu zadaný alespoň jeden API klíč.",
+        "err_critique_empty": "Nejprve vložte text kritiky.",
+        "ok_critique_saved": "✅ Uloženo jako `{name}`.",
+        "err_local_r2": "⚠️ Uloženo lokálně, R2 selhalo: {err}",
+        "judge_prompt": "Jsi odborník na analýzu a sumarizaci textu. Na základě průběhu debaty vytvoř strukturovaný souhrn. Výstup by měl obsahovat tyto sekce:\n### Hlavní shody\n### Hlavní neshody\n### Závěr\nBuď stručný, ale výstižný. Zmiň klíčové argumenty diskutujících.",
     },
     "en": {
         "lang_name": "Language / Jazyk", "nav": "🧭 Navigation", "nav_arena": "⚔️ Debate Arena", "nav_help": "❓ Help & Guides", "nav_setup": "⚙️ Debate Settings",
@@ -136,7 +144,6 @@ TEXTS = {
         "human_turn_prompt": "Write your argument and press Enter...",
         "human_turn_waiting": "it is your turn. Write your argument:",
         
-        # NEW TEXTS FOR SUMMARY AND SIMPLE DEBATE
         "summary_title": "📝 Debate Summary",
         "summary_caption": "Create a brief summary of main agreements, disagreements and conclusion. If an independent critique is available, it will be included.",
         "no_key_summary": "You must have at least one API key entered in the menu to generate a summary.",
@@ -166,7 +173,6 @@ TEXTS = {
         "simple_debate": "🚀 Simple Debate (AI vs AI)",
         "advanced_debate": "⚙️ Advanced Debate",
         
-        # ERROR MESSAGES
         "err_persona_too_long": "⚠️ Instruction file is too long, truncated to 10,000 characters.",
         "err_topic_too_long": "⚠️ Total text is too long ({len} chars). Truncated to first {max} chars (approx. 25 pages).",
         "ok_docs_loaded": "✅ Loaded {len} documents (processed {len_full} chars).",
@@ -178,6 +184,16 @@ TEXTS = {
         "allowed_persona": "Allowed formats: .md, .txt. Max length: 10,000 chars (approx. 5 pages).",
         "allowed_topic": "Allowed formats: .md, .txt. Max text length: 45,000 chars (approx. 25 pages).",
         "download": "Download",
+        "human": "Human",
+        "max_7": "(max 7)",
+        "topic": "Topic",
+        "saved_to_r2": "✅ Saved to R2.",
+        "err_r2": "❌ Upload to R2 failed: {err}",
+        "err_no_provider_critique": "You must have at least one API key entered in the menu to generate a critique.",
+        "err_critique_empty": "Please paste the critique text first.",
+        "ok_critique_saved": "✅ Saved as `{name}`.",
+        "err_local_r2": "⚠️ Saved locally, R2 failed: {err}",
+        "judge_prompt": "You are an expert in text analysis and summarization. Based on the debate, create a structured summary. The output should contain these sections:\n### Main Agreements\n### Main Disagreements\n### Conclusion\nBe concise but accurate. Mention the key arguments of the debaters.",
     }
 }
 
