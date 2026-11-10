@@ -27,8 +27,8 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-    lang_choice = st.radio(t("lang_name"), ["Čeština", "English"], index=0 if st.session_state.lang == "cs" else 1, horizontal=True)
-    st.session_state.lang = "cs" if "Čeština" in lang_choice else "en"
+    lang_choice = st.radio(t("lang_name"), ["English", "Čeština"], index=0 if st.session_state.lang == "en" else 1, horizontal=True)
+    st.session_state.lang = "en" if "English" in lang_choice else "cs"
 
     st.divider()
     st.header(t("api_keys"))
