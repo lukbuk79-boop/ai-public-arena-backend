@@ -78,9 +78,10 @@ def render_critique_ui(available_providers_list):
                     try:
                         critique_text, model_used = call_critique_api("You are an independent reviewer.", f"Evaluate this debate: {st.session_state.md_content}", provider, keys)
                         ok, err, base_name = save_critique_result(critique_text, model_used)
-                        if ok: st.success(t("saved_to_r2"))
-                        else: st.warning(t("err_local_r2", err=err))
-                    except Exception as e: st.error(f"{t('err_api')} {e}")
+                        if not ok: 
+                            st.warning(t("err_local_r2", err=err))
+                    except Exception as e: 
+                        st.error(f"{t('err_api')} {e}")
 
     with tab_ext:
         st.info(t("ext_info"))
@@ -110,8 +111,8 @@ def render_critique_ui(available_providers_list):
         if st.button(t("save_critique"), key="btn_save_ext"):
             if pasted.strip():
                 ok, err, base_name = save_critique_result(pasted, "External AI (manual)")
-                if ok: st.success(t("ok_critique_saved", name=base_name))
-                else: st.warning(t("err_local_r2", err=err))
+                if not ok: 
+                    st.warning(t("err_local_r2", err=err))
             else:
                 st.error(t("err_critique_empty"))
 
@@ -185,7 +186,7 @@ def render_summary_ui(available_providers_list):
                         
                         ok, res = save_summary_to_state_and_r2(summary_text, model_used)
                         if ok:
-                            st.success(f"{t('summary_saved')} `{res}.md` / `{res}.pdf`.")
+                            st.success(t("summary_saved"))
                         else:
                             st.warning(f"{t('summary_save_err')} {res}")
                             
@@ -228,7 +229,7 @@ def render_summary_ui(available_providers_list):
             if pasted_summary.strip():
                 ok, res = save_summary_to_state_and_r2(pasted_summary, "External AI (manual)")
                 if ok: 
-                    st.success(f"{t('summary_ext_saved')} `{res}.md` / `{res}.pdf`.")
+                    st.success(t("summary_ext_saved"))
                     st.rerun()
                 else: 
                     st.warning(f"{t('summary_ext_err')} {res}")
@@ -413,8 +414,9 @@ if not st.session_state.debate_finished:
                     
                 s3.put_object(Bucket=bucket, Key=md_path, Body=st.session_state.md_content.encode("utf-8"))
                 s3.put_object(Bucket=bucket, Key=pdf_path, Body=st.session_state.pdf_bytes)
-                st.success(t("saved_to_r2"))
-            except Exception as e: st.error(t("err_r2", err=e))
+                # Hláška o uložení byla odstraněna
+            except Exception as e: 
+                st.error(t("err_r2", err=e))
 
         st.rerun()
 
