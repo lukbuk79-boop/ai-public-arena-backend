@@ -98,9 +98,10 @@ elif st.session_state.setup_step == 2:
     
     st.radio(f"{t('input_type')} A:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_a", on_change=update_state, args=("w_input_type_a", "input_type_a"))
     if st.session_state.w_input_type_a == "manual": 
-        st.text_area(f"{t('instructions')} A", key="w_role_a_prompt", on_change=update_state, args=("w_role_a_prompt", "role_a_prompt"))
+        st.text_area(f"{t('instructions')} A", key="w_role_a_prompt", on_change=update_state, args=("w_role_a_prompt", "role_a_prompt"), height=150)
     else:
-        file_a = st.file_uploader(f"{t('upload')} A", type=["md", "txt"], key="file_a")
+        st.caption("Povolené formáty: .md, .txt. Maximální délka: 10 000 znaků (cca 5 stran).")
+        file_a = st.file_uploader(f"{t('upload')} A", type=["md", "txt"], key="file_a", label_visibility="collapsed")
         if file_a: 
             text_a = extract_text_from_file(file_a)
             if len(text_a) > 10000:
@@ -127,9 +128,10 @@ elif st.session_state.setup_step == 2:
         st.radio(f"{t('input_type')} B:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_b", on_change=update_state, args=("w_input_type_b", "input_type_b"))
         
         if st.session_state.w_input_type_b == "manual": 
-            st.text_area(f"{t('instructions')} B", key="w_role_b_prompt", on_change=update_state, args=("w_role_b_prompt", "role_b_prompt"))
+            st.text_area(f"{t('instructions')} B", key="w_role_b_prompt", on_change=update_state, args=("w_role_b_prompt", "role_b_prompt"), height=150)
         else:
-            file_b = st.file_uploader(f"{t('upload')} B", type=["md", "txt"], key="file_b")
+            st.caption("Povolené formáty: .md, .txt. Maximální délka: 10 000 znaků (cca 5 stran).")
+            file_b = st.file_uploader(f"{t('upload')} B", type=["md", "txt"], key="file_b", label_visibility="collapsed")
             if file_b: 
                 text_b = extract_text_from_file(file_b)
                 if len(text_b) > 10000:
@@ -156,9 +158,10 @@ elif st.session_state.setup_step == 2:
             st.radio(f"{t('input_type')} C:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_c", on_change=update_state, args=("w_input_type_c", "input_type_c"))
             
             if st.session_state.w_input_type_c == "manual": 
-                st.text_area(f"{t('instructions')} C", key="w_role_c_prompt", on_change=update_state, args=("w_role_c_prompt", "role_c_prompt"))
+                st.text_area(f"{t('instructions')} C", key="w_role_c_prompt", on_change=update_state, args=("w_role_c_prompt", "role_c_prompt"), height=150)
             else:
-                file_c = st.file_uploader(f"{t('upload')} C", type=["md", "txt"], key="file_c")
+                st.caption("Povolené formáty: .md, .txt. Maximální délka: 10 000 znaků (cca 5 stran).")
+                file_c = st.file_uploader(f"{t('upload')} C", type=["md", "txt"], key="file_c", label_visibility="collapsed")
                 if file_c: 
                     text_c = extract_text_from_file(file_c)
                     if len(text_c) > 10000:
@@ -172,9 +175,11 @@ elif st.session_state.setup_step == 2:
     st.selectbox(f"{t('provider_select')}:", select_options, key="w_provider_mod", on_change=update_state, args=("w_provider_mod", "provider_mod"))
     
     with st.expander(t("advanced_settings")):
-        # ZMĚNA: max_value=7
-        st.slider(t("rounds"), min_value=2, max_value=7, key="w_max_rounds", on_change=update_state, args=("w_max_rounds", "max_rounds"))
-        st.slider(t("memory_limit_label"), min_value=2, max_value=30, key="w_memory_limit", on_change=update_state, args=("w_memory_limit", "memory_limit"))
+        # ZMĚNA: Popisek s upozorněním na max 7, hodnota 7
+        st.slider(f"{t('rounds')} (maximálně 7)", min_value=2, max_value=7, key="w_max_rounds", on_change=update_state, args=("w_max_rounds", "max_rounds"))
+        
+        # ZMĚNA: Paměť kontextu snížena na max 10 (logika: nemá smysl mít víc než je počet kol + rezerva)
+        st.slider(t("memory_limit_label"), min_value=2, max_value=10, key="w_memory_limit", on_change=update_state, args=("w_memory_limit", "memory_limit"))
 
 elif st.session_state.setup_step == 3:
     st.subheader(t("setup_step3"))
@@ -185,12 +190,14 @@ elif st.session_state.setup_step == 3:
     st.radio(t("topic_type"), options=["manual", "upload"], format_func=lambda x: t(x), key="w_topic_input_type", on_change=update_state, args=("w_topic_input_type", "topic_input_type"))
     
     if st.session_state.w_topic_input_type == "manual":
-        st.text_input(t("topic_text"), key="w_topic_input", on_change=update_state, args=("w_topic_input", "topic_input"))
+        # ZMĚNA: text_area místo text_input, výška 250px
+        st.text_area(t("topic_text"), key="w_topic_input", on_change=update_state, args=("w_topic_input", "topic_input"), height=250)
         st.session_state.topic_document_text = ""
     else:
         st.text_input(t("topic_file"), key="w_topic_input", on_change=update_state, args=("w_topic_input", "topic_input"))
-        # ZMĚNA: Pouze md a txt
-        topic_files = st.file_uploader(t("upload_topic"), type=["md", "txt"], accept_multiple_files=True)
+        st.caption("Povolené formáty: .md, .txt. Maximální délka textu: 45 000 znaků (cca 25 stran).")
+        # ZMĚNA: Pouze md a txt, label_visibility="collapsed" skryje výchozí text
+        topic_files = st.file_uploader(t("upload_topic"), type=["md", "txt"], accept_multiple_files=True, label_visibility="collapsed")
         if topic_files:
             file_names = "_".join([f.name for f in topic_files])
             if st.session_state.uploaded_files_hash != file_names:
@@ -198,7 +205,6 @@ elif st.session_state.setup_step == 3:
                 for f in topic_files: 
                     full_text += f"--- Document: {f.name} ---\n" + extract_text_from_file(f) + "\n\n"
                 
-                # ZMĚNA: Limit 45 000 znaků (cca 25 stran)
                 MAX_ZNAKU = 45000
                 if len(full_text) > MAX_ZNAKU:
                     st.warning(f"⚠️ Celkový text je příliš dlouhý ({len(full_text)} znaků). Pro účely diskuze byl zkrácen na prvních {MAX_ZNAKU} znaků (cca 25 stran).")
