@@ -2,7 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 def init_state():
-    if "lang" not in st.session_state: st.session_state.lang = "cs"
+    if "lang" not in st.session_state: st.session_state.lang = "en"
     
     _restored_any_key = False
     if "g_key" in st.query_params: st.session_state.saved_gemini = st.query_params["g_key"]; _restored_any_key = True
