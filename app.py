@@ -7,7 +7,6 @@ from utils.config import t
 st.set_page_config(page_title="AI Public Aréna", layout="wide")
 init_state()
 
-# Inicializace klíčů v paměti, pokud ještě neexistují
 if "saved_gemini" not in st.session_state: st.session_state.saved_gemini = ""
 if "saved_mistral" not in st.session_state: st.session_state.saved_mistral = ""
 if "saved_nim" not in st.session_state: st.session_state.saved_nim = ""
@@ -43,15 +42,13 @@ with st.sidebar:
     temp_n = st.text_input(f"🔑 NVIDIA {t('api_keys')}:", type="password", value=st.session_state.saved_nim, placeholder="nvapi-...", autocomplete="off")
     st.session_state.saved_nim = temp_n
 
-    # Propojení s vnitřní pamětí aplikace pro ostatní stránky
     st.session_state.gemini_key = st.session_state.saved_gemini
     st.session_state.mistral_key = st.session_state.saved_mistral
     st.session_state.nim_key = st.session_state.saved_nim
 
-    # Bezpečnostní upozornění a tlačítko pro smazání
-    st.caption("🔒 Klíče jsou uloženy pouze dočasně v paměti stránky. Po zavření nebo obnovení zmizí.")
+    st.caption(t("keys_warning"))
     
-    if st.button("🧹 Vymazat klíče z paměti", use_container_width=True):
+    if st.button(t("clear_keys"), use_container_width=True):
         st.session_state.saved_gemini = ""
         st.session_state.saved_mistral = ""
         st.session_state.saved_nim = ""
@@ -63,7 +60,6 @@ with st.sidebar:
     st.divider()
     st.caption("© 2026 Lukáš Buchvald")
 
-# Navigace
 pg = st.navigation([
     st.Page("app_pages/arena.py", title=t("nav_arena"), icon=":material/swords:"),
     st.Page("app_pages/setup.py", title=t("nav_setup"), icon=":material/settings:"),
