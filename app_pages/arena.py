@@ -19,6 +19,7 @@ from utils.storage import get_next_counter, get_r2_client, save_critique_result,
 
 init_state()
 
+# --- INICIALIZACE STAVU ---
 if "input_type_a" not in st.session_state: st.session_state.input_type_a = "Ručně"
 if "input_type_b" not in st.session_state: st.session_state.input_type_b = "Ručně"
 if "input_type_c" not in st.session_state: st.session_state.input_type_c = "Ručně"
@@ -29,10 +30,11 @@ if "summary_md" not in st.session_state: st.session_state.summary_md = ""
 if "summary_pdf" not in st.session_state: st.session_state.summary_pdf = b""
 if "summary_base_name" not in st.session_state: st.session_state.summary_base_name = ""
 
+# --- POMOCNÉ FUNKCE ---
 def get_display_name(name, temp_key, exp_key):
     if not name: return ""
     parts = []
-    # Pokud je temperament "undefined", vypíšeme jen jméno a případně expertizu
+    # Pokud je vlastnost "undefined" nebo prázdná, nezobrazí se
     if temp_key and temp_key != "undefined":
         parts.append(t(f"temperament_{temp_key}"))
     if exp_key and exp_key != "undefined":
@@ -250,7 +252,7 @@ def render_summary_ui(available_providers_list):
         st.markdown(f'<div style="display:flex; gap:10px; margin:10px 0;"><a href="data:application/octet-stream;base64,{md_b64}" download="{base}.md" style="flex:1; text-align:center; padding:10px; background:#f0f2f6; color:#31333f; text-decoration:none; border-radius:5px; border:1px solid #d6d6d6;">📥 Stáhnout souhrn (.md)</a><a href="data:application/pdf;base64,{pdf_b64}" download="{base}.pdf" style="flex:1; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:5px;">📄 Stáhnout souhrn (.pdf)</a></div>', unsafe_allow_html=True)
 
 
-# HLAVNÍ TITULEK
+# --- HLAVNÍ OBSAH ---
 st.title(t("debate_title"))
 
 # --- ÚVODNÍ STRÁNKA S VOLBOU ---
@@ -293,6 +295,7 @@ if not st.session_state.debate_active:
 
 # --- POKUD DEBATA BĚŽÍ, POKRAČUJE ZDE ---
 is_simple = st.session_state.get("debate_type", "advanced") == "simple"
+
 available_providers = []
 if st.session_state.gemini_key.strip(): available_providers.append("Gemini")
 if st.session_state.mistral_key.strip(): available_providers.append("Mistral")
@@ -321,7 +324,7 @@ mode = "ai_vs_ai" if is_simple else st.session_state.debate_mode
 participants = []
 lang = st.session_state.lang
 
-# --- ZDE JE OPRAVA PRO ZOBRAZOVÁNÍ JMEN ---
+# Zobrazení jmen (v jednoduché verzi bez vlastností, v pokročilé s vlastnostmi - pokud nejsou undefined)
 if is_simple:
     name_a_display = st.session_state.role_a_name
     name_b_display = st.session_state.role_b_name
@@ -345,7 +348,6 @@ if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and n
         name_c_display = get_display_name(st.session_state.role_c_name, st.session_state.temperament_c, st.session_state.expertise_c)
         prompt_c = enhance_role_prompt(st.session_state.role_c_prompt, st.session_state.temperament_c, st.session_state.expertise_c, st.session_state.response_length, st.session_state.debate_rules, lang)
         participants.append({"name": name_c_display, "type": "ai", "provider": st.session_state.provider_c, "prompt": prompt_c, "avatar": "🟢"})
-# -------------------------------------------
 
 st.markdown(f"### 📌 Téma: *{st.session_state.current_topic}*")
 
@@ -427,6 +429,7 @@ if not st.session_state.debate_finished:
             try:
                 s3 = get_r2_client(); bucket = st.secrets["R2_BUCKET_NAME"]
                 
+                # Rozlišení cest pro R2
                 if is_simple:
                     md_path = f"simply_discussion/markdown/{full_base}.md"
                     pdf_path = f"simply_discussion/pdf/{full_base}.pdf"
@@ -461,6 +464,7 @@ else:
     st.divider()
     render_downloads()
     
+    # Zobrazení kritiky a souhrnu JEN pro pokročilou diskuzi
     if not is_simple:
         render_critique_ui(available_providers)
         render_summary_ui(available_providers)
