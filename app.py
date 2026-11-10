@@ -1,27 +1,16 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import base64
-import json
 from utils.state import init_state
 from utils.config import t
 
 st.set_page_config(page_title="AI Public Aréna", layout="wide")
 init_state()
 
-def save_keys_to_storage():
-    g = json.dumps(st.session_state.saved_gemini)
-    n = json.dumps(st.session_state.saved_nim)
-    m = json.dumps(st.session_state.saved_mistral)
-    js = f"""
-    <script>
-        try {{
-            localStorage.setItem('arena_gemini', {g});
-            localStorage.setItem('arena_nim', {n});
-            localStorage.setItem('arena_mistral', {m});
-        }} catch(e) {{ console.error("LocalStorage blocked", e); }}
-    </script>
-    """
-    components.html(js, height=0)
+# Inicializace klíčů v paměti, pokud ještě neexistují
+if "saved_gemini" not in st.session_state: st.session_state.saved_gemini = ""
+if "saved_mistral" not in st.session_state: st.session_state.saved_mistral = ""
+if "saved_nim" not in st.session_state: st.session_state.saved_nim = ""
 
 with st.sidebar:
     def get_image_base64(path):
@@ -45,27 +34,36 @@ with st.sidebar:
     st.divider()
     st.header(t("api_keys"))
     
-    temp_g = st.text_input(f"🔑 Gemini {t('api_keys')}:", type="password", value=st.session_state.saved_gemini, placeholder="AIzaSy...")
+    temp_g = st.text_input(f"🔑 Gemini {t('api_keys')}:", type="password", value=st.session_state.saved_gemini, placeholder="AIzaSy...", autocomplete="off")
     st.session_state.saved_gemini = temp_g 
     
-    temp_m = st.text_input(f"🔑 Mistral {t('api_keys')}:", type="password", value=st.session_state.saved_mistral, placeholder="...")
+    temp_m = st.text_input(f"🔑 Mistral {t('api_keys')}:", type="password", value=st.session_state.saved_mistral, placeholder="...", autocomplete="off")
     st.session_state.saved_mistral = temp_m
     
-    temp_n = st.text_input(f"🔑 NVIDIA {t('api_keys')}:", type="password", value=st.session_state.saved_nim, placeholder="nvapi-...")
+    temp_n = st.text_input(f"🔑 NVIDIA {t('api_keys')}:", type="password", value=st.session_state.saved_nim, placeholder="nvapi-...", autocomplete="off")
     st.session_state.saved_nim = temp_n
 
+    # Propojení s vnitřní pamětí aplikace pro ostatní stránky
     st.session_state.gemini_key = st.session_state.saved_gemini
     st.session_state.mistral_key = st.session_state.saved_mistral
     st.session_state.nim_key = st.session_state.saved_nim
 
-    if st.button(t("save_keys"), use_container_width=True):
-        save_keys_to_storage()
-        st.success(t("save_keys_success"))
+    # Bezpečnostní upozornění a tlačítko pro smazání
+    st.caption("🔒 Klíče jsou uloženy pouze dočasně v paměti stránky. Po zavření nebo obnovení zmizí.")
+    
+    if st.button("🧹 Vymazat klíče z paměti", use_container_width=True):
+        st.session_state.saved_gemini = ""
+        st.session_state.saved_mistral = ""
+        st.session_state.saved_nim = ""
+        st.session_state.gemini_key = ""
+        st.session_state.mistral_key = ""
+        st.session_state.nim_key = ""
+        st.rerun()
 
     st.divider()
     st.caption("© 2026 Lukáš Buchvald")
 
-# Zde je samotná navigace v levém menu
+# Navigace
 pg = st.navigation([
     st.Page("app_pages/arena.py", title=t("nav_arena"), icon=":material/swords:"),
     st.Page("app_pages/setup.py", title=t("nav_setup"), icon=":material/settings:"),
