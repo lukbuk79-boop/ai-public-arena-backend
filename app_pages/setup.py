@@ -11,13 +11,17 @@ if is_simple and st.session_state.setup_step == 1:
     st.session_state.setup_step = 2
     st.session_state.debate_mode = "ai_vs_ai" # Vynutíme AI vs AI
 
-# Vytvoření seznamu možností pro temperament s "undefined" na prvním místě
+# Seznamy možností s "undefined" na prvním místě
 TEMPERAMENT_OPTIONS = ["undefined"] + [k for k in TEMPERAMENT_KEYS if k != "undefined"]
+EXPERTISE_OPTIONS = ["undefined"] + [k for k in EXPERTISE_KEYS if k != "undefined"]
 
 def format_temperament(k):
-    if k == "undefined":
-        return "Nedefinováno" if st.session_state.lang == "cs" else "Undefined"
+    if k == "undefined": return "Nedefinováno" if st.session_state.lang == "cs" else "Undefined"
     return t(f"temperament_{k}")
+
+def format_expertise(k):
+    if k == "undefined": return "Nedefinováno" if st.session_state.lang == "cs" else "Undefined"
+    return t(f"expertise_{k}")
 
 def update_state(widget_key, state_key):
     st.session_state[state_key] = st.session_state[widget_key]
@@ -40,8 +44,9 @@ def apply_preset_callback():
 def randomize_persona(prefix):
     # Náhodný výběr VYNEHÁVÁ "undefined"
     valid_temperaments = [k for k in TEMPERAMENT_KEYS if k != "undefined"]
+    valid_expertises = [k for k in EXPERTISE_KEYS if k != "undefined"]
     new_t = random.choice(valid_temperaments)
-    new_e = random.choice(EXPERTISE_KEYS)
+    new_e = random.choice(valid_expertises)
     st.session_state[f"temperament_{prefix}"] = new_t
     st.session_state[f"expertise_{prefix}"] = new_e
     st.session_state[f"w_temperament_{prefix}"] = new_t
@@ -92,14 +97,14 @@ elif st.session_state.setup_step == 2:
     if st.session_state.provider_c not in select_options: st.session_state.provider_c = select_options[0]
     if st.session_state.provider_mod not in select_options: st.session_state.provider_mod = select_options[0]
 
+    # Inicializace s "undefined" jako výchozí hodnotou
     for p in ["a", "b", "c"]:
         if f"w_role_{p}_name" not in st.session_state: st.session_state[f"w_role_{p}_name"] = st.session_state[f"role_{p}_name"]
         if f"w_provider_{p}" not in st.session_state: st.session_state[f"w_provider_{p}"] = st.session_state[f"provider_{p}"]
-        if f"w_temperament_{p}" not in st.session_state: st.session_state[f"w_temperament_{p}"] = st.session_state[f"temperament_{p}"]
-        if f"w_expertise_{p}" not in st.session_state: st.session_state[f"w_expertise_{p}"] = st.session_state[f"expertise_{p}"]
+        if f"w_temperament_{p}" not in st.session_state: st.session_state[f"w_temperament_{p}"] = st.session_state.get(f"temperament_{p}", "undefined")
+        if f"w_expertise_{p}" not in st.session_state: st.session_state[f"w_expertise_{p}"] = st.session_state.get(f"expertise_{p}", "undefined")
         if f"w_role_{p}_prompt" not in st.session_state: st.session_state[f"w_role_{p}_prompt"] = st.session_state[f"role_{p}_prompt"]
         
-        # Vynucení výchozí volby "Ručně" (manual)
         if f"w_input_type_{p}" not in st.session_state: 
             st.session_state[f"w_input_type_{p}"] = "manual"
     
@@ -111,14 +116,12 @@ elif st.session_state.setup_step == 2:
     st.text_input(f"{t('name')} A", key="w_role_a_name", on_change=update_state, args=("w_role_a_name", "role_a_name"))
     st.selectbox(f"{t('provider_select')} A:", select_options, key="w_provider_a", on_change=update_state, args=("w_provider_a", "provider_a"))
     
-    # Skrytí Temperamentu a Expertizy v jednoduché verzi
     if not is_simple:
         col_t, col_e = st.columns(2)
         with col_t: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_a", on_change=update_state, args=("w_temperament_a", "temperament_a"))
-        with col_e: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="w_expertise_a", on_change=update_state, args=("w_expertise_a", "expertise_a"))
+        with col_e: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_a", on_change=update_state, args=("w_expertise_a", "expertise_a"))
         st.button(t("random_button"), key="random_a", on_click=randomize_persona, args=("a",), use_container_width=True)
     
-    # Vynucení indexu 0 pro "Ručně"
     st.radio(f"{t('input_type')} A:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_a", on_change=update_state, args=("w_input_type_a", "input_type_a"), index=0 if st.session_state.w_input_type_a == "manual" else 1)
     
     if st.session_state.w_input_type_a == "manual": 
@@ -147,7 +150,7 @@ elif st.session_state.setup_step == 2:
         if not is_simple:
             col_t2, col_e2 = st.columns(2)
             with col_t2: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_b", on_change=update_state, args=("w_temperament_b", "temperament_b"))
-            with col_e2: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="w_expertise_b", on_change=update_state, args=("w_expertise_b", "expertise_b"))
+            with col_e2: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_b", on_change=update_state, args=("w_expertise_b", "expertise_b"))
             st.button(t("random_button"), key="random_b", on_click=randomize_persona, args=("b",), use_container_width=True)
         
         st.radio(f"{t('input_type')} B:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_b", on_change=update_state, args=("w_input_type_b", "input_type_b"), index=0 if st.session_state.w_input_type_b == "manual" else 1)
@@ -177,7 +180,7 @@ elif st.session_state.setup_step == 2:
             
             col_t3, col_e3 = st.columns(2)
             with col_t3: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_c", on_change=update_state, args=("w_temperament_c", "temperament_c"))
-            with col_e3: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="w_expertise_c", on_change=update_state, args=("w_expertise_c", "expertise_c"))
+            with col_e3: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_c", on_change=update_state, args=("w_expertise_c", "expertise_c"))
             
             st.button(t("random_button"), key="random_c", on_click=randomize_persona, args=("c",), use_container_width=True)
             st.radio(f"{t('input_type')} C:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_c", on_change=update_state, args=("w_input_type_c", "input_type_c"), index=0 if st.session_state.w_input_type_c == "manual" else 1)
