@@ -314,14 +314,20 @@ mode = "ai_vs_ai" if is_simple else st.session_state.debate_mode
 participants = []
 lang = st.session_state.lang
 
-name_a_display = get_display_name(st.session_state.role_a_name, st.session_state.temperament_a, st.session_state.expertise_a)
+# --- ZDE JE OPRAVA PRO ZOBRAZOVÁNÍ JMEN ---
+if is_simple:
+    name_a_display = st.session_state.role_a_name
+    name_b_display = st.session_state.role_b_name
+else:
+    name_a_display = get_display_name(st.session_state.role_a_name, st.session_state.temperament_a, st.session_state.expertise_a)
+    name_b_display = get_display_name(st.session_state.role_b_name, st.session_state.temperament_b, st.session_state.expertise_b)
+
 prompt_a = enhance_role_prompt(st.session_state.role_a_prompt, st.session_state.temperament_a, st.session_state.expertise_a, st.session_state.response_length, st.session_state.debate_rules, lang)
 participants.append({"name": name_a_display, "type": "ai", "provider": st.session_state.provider_a, "prompt": prompt_a, "avatar": "🔵"})
 
 if mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
     participants.append({"name": st.session_state.role_b_name, "type": "human", "avatar": "🧑‍💻"})
 else:
-    name_b_display = get_display_name(st.session_state.role_b_name, st.session_state.temperament_b, st.session_state.expertise_b)
     prompt_b = enhance_role_prompt(st.session_state.role_b_prompt, st.session_state.temperament_b, st.session_state.expertise_b, st.session_state.response_length, st.session_state.debate_rules, lang)
     participants.append({"name": name_b_display, "type": "ai", "provider": st.session_state.provider_b, "prompt": prompt_b, "avatar": "🔴"})
 
@@ -332,6 +338,7 @@ if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and n
         name_c_display = get_display_name(st.session_state.role_c_name, st.session_state.temperament_c, st.session_state.expertise_c)
         prompt_c = enhance_role_prompt(st.session_state.role_c_prompt, st.session_state.temperament_c, st.session_state.expertise_c, st.session_state.response_length, st.session_state.debate_rules, lang)
         participants.append({"name": name_c_display, "type": "ai", "provider": st.session_state.provider_c, "prompt": prompt_c, "avatar": "🟢"})
+# -------------------------------------------
 
 st.markdown(f"### 📌 Téma: *{st.session_state.current_topic}*")
 
@@ -413,7 +420,6 @@ if not st.session_state.debate_finished:
             try:
                 s3 = get_r2_client(); bucket = st.secrets["R2_BUCKET_NAME"]
                 
-                # ROZLIŠENÍ CESTY PRO R2
                 if is_simple:
                     md_path = f"simply_discussion/md/{full_base}.md"
                     pdf_path = f"simply_discussion/pdf/{full_base}.pdf"
@@ -448,7 +454,6 @@ else:
     st.divider()
     render_downloads()
     
-    # ZOBRAZENÍ KRITIKY A SOUHRNU JEN PRO POKROČILOU DISKUZI
     if not is_simple:
         render_critique_ui(available_providers)
         render_summary_ui(available_providers)
