@@ -145,6 +145,8 @@ if st.session_state.lang == "cs":
     Pro zajištění nejlepší kvality a spolehlivosti **podporujeme pouze formáty `.md` (Markdown) a `.txt`**. Formát PDF jsme odstranili, protože u naskenovaných dokumentů často selhává čtení textu.
     *   **Instrukce pro osobnosti:** Limit je **10 000 znaků** (cca 5 stran). Kratší instrukce pomáhají AI lépe se držet role.
     *   **Téma / Podklady pro diskuzi:** Limit je **45 000 znaků** (cca 25 stran). Pokud nahrajete delší soubor, aplikace vás upozorní a automaticky text zkrátí.
+    
+    *Poznámka: Všechny vygenerované debaty, kritiky a souhrny se automaticky ukládají do zabezpečeného cloudového úložiště pro případ, že byste si je chtěli stáhnout později.*
     """)
 else:
     st.markdown("""
@@ -152,6 +154,8 @@ else:
     To ensure the best quality and reliability, **we only support `.md` (Markdown) and `.txt` formats**. We have removed PDF because text extraction often fails with scanned documents.
     *   **Persona instructions:** Limit is **10,000 characters** (approx. 5 pages). Shorter instructions help the AI stay in character better.
     *   **Topic / Debate materials:** Limit is **45,000 characters** (approx. 25 pages). If you upload a longer file, the app will warn you and automatically truncate the text.
+    
+    *Note: All generated debates, critiques, and summaries are automatically archived in a secure cloud storage in case you want to download them later.*
     """)
 
 st.divider()
@@ -162,13 +166,13 @@ with st.expander(t("exp_crit")):
         st.markdown("""
         V **Pokročilé diskuzi** můžete po skončení debaty nechat diskuzi a verdikt rozhodčího posoudit další AI:
         
-        *   **Přímé API:** Pokud máte v aplikaci klíč, kritika a souhrn budou vygenerovány přímo serverem a uloženy na Cloudflare R2 do složky `summary` nebo `critique`.
+        *   **Přímé API:** Pokud máte v aplikaci klíč, kritika a souhrn budou vygenerovány přímo serverem a uloženy do cloudu.
         *   **Externí chat:** Pokud chcete použít lepší model (např. placený ChatGPT Plus nebo Claude), stáhněte si PDF s diskuzí, otevřete odkaz na chat a vložte připravený prompt. Poté zkopírujte výsledek zpět do aplikace a uložte ho.
         """)
     else:
         st.markdown("""
         In **Advanced Debate**, after the debate ends, you can have the debate and the judge's verdict evaluated by another AI:
         
-        *   **Direct API:** If you have a key in the app, the critique and summary will be generated directly by the server and saved to Cloudflare R2 in the `summary` or `critique` folder.
+        *   **Direct API:** If you have a key in the app, the critique and summary will be generated directly by the server and saved to the cloud.
         *   **External chat:** If you want to use a better model (e.g., paid ChatGPT Plus or Claude), download the debate PDF, open the chat link, and paste the prepared prompt. Then copy the result back into the app and save it.
         """)
