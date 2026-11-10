@@ -11,6 +11,14 @@ if is_simple and st.session_state.setup_step == 1:
     st.session_state.setup_step = 2
     st.session_state.debate_mode = "ai_vs_ai" # Vynutíme AI vs AI
 
+# Vytvoření seznamu možností pro temperament s "undefined" na prvním místě
+TEMPERAMENT_OPTIONS = ["undefined"] + [k for k in TEMPERAMENT_KEYS if k != "undefined"]
+
+def format_temperament(k):
+    if k == "undefined":
+        return "Nedefinováno" if st.session_state.lang == "cs" else "Undefined"
+    return t(f"temperament_{k}")
+
 def update_state(widget_key, state_key):
     st.session_state[state_key] = st.session_state[widget_key]
 
@@ -30,7 +38,9 @@ def apply_preset_callback():
     st.session_state.expertise_c = cfg["expertise_a"]
 
 def randomize_persona(prefix):
-    new_t = random.choice(TEMPERAMENT_KEYS)
+    # Náhodný výběr VYNEHÁVÁ "undefined"
+    valid_temperaments = [k for k in TEMPERAMENT_KEYS if k != "undefined"]
+    new_t = random.choice(valid_temperaments)
     new_e = random.choice(EXPERTISE_KEYS)
     st.session_state[f"temperament_{prefix}"] = new_t
     st.session_state[f"expertise_{prefix}"] = new_e
@@ -104,7 +114,7 @@ elif st.session_state.setup_step == 2:
     # Skrytí Temperamentu a Expertizy v jednoduché verzi
     if not is_simple:
         col_t, col_e = st.columns(2)
-        with col_t: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), key="w_temperament_a", on_change=update_state, args=("w_temperament_a", "temperament_a"))
+        with col_t: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_a", on_change=update_state, args=("w_temperament_a", "temperament_a"))
         with col_e: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="w_expertise_a", on_change=update_state, args=("w_expertise_a", "expertise_a"))
         st.button(t("random_button"), key="random_a", on_click=randomize_persona, args=("a",), use_container_width=True)
     
@@ -136,7 +146,7 @@ elif st.session_state.setup_step == 2:
         
         if not is_simple:
             col_t2, col_e2 = st.columns(2)
-            with col_t2: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), key="w_temperament_b", on_change=update_state, args=("w_temperament_b", "temperament_b"))
+            with col_t2: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_b", on_change=update_state, args=("w_temperament_b", "temperament_b"))
             with col_e2: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="w_expertise_b", on_change=update_state, args=("w_expertise_b", "expertise_b"))
             st.button(t("random_button"), key="random_b", on_click=randomize_persona, args=("b",), use_container_width=True)
         
@@ -166,7 +176,7 @@ elif st.session_state.setup_step == 2:
             st.selectbox(f"{t('provider_select')} C:", select_options, key="w_provider_c", on_change=update_state, args=("w_provider_c", "provider_c"))
             
             col_t3, col_e3 = st.columns(2)
-            with col_t3: st.selectbox(t("temperament_label"), options=TEMPERAMENT_KEYS, format_func=lambda k: t(f"temperament_{k}"), key="w_temperament_c", on_change=update_state, args=("w_temperament_c", "temperament_c"))
+            with col_t3: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_c", on_change=update_state, args=("w_temperament_c", "temperament_c"))
             with col_e3: st.selectbox(t("expertise_label"), options=EXPERTISE_KEYS, format_func=lambda k: t(f"expertise_{k}"), key="w_expertise_c", on_change=update_state, args=("w_expertise_c", "expertise_c"))
             
             st.button(t("random_button"), key="random_c", on_click=randomize_persona, args=("c",), use_container_width=True)
