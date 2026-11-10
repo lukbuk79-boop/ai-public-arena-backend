@@ -3,6 +3,15 @@ import random
 from utils.config import t, PRESET_KEYS, TEMPERAMENT_KEYS, EXPERTISE_KEYS, LENGTH_KEYS, GOAL_KEYS, RULE_KEYS, MODE_KEYS, PRESETS
 from utils.pdf_export import extract_text_from_file
 
+# Zjištění, jaký typ debaty uživatel zvolil
+if "debate_type" not in st.session_state: st.session_state.debate_type = "advanced"
+is_simple = st.session_state.debate_type == "simple"
+
+# Pokud jde o jednoduchou diskuzi a jsme v kroku 1, přeskočíme na krok 2
+if is_simple and st.session_state.setup_step == 1:
+    st.session_state.setup_step = 2
+    st.session_state.debate_mode = "ai_vs_ai" # Vynutíme AI vs AI
+
 def update_state(widget_key, state_key):
     st.session_state[state_key] = st.session_state[widget_key]
 
@@ -37,6 +46,8 @@ def go_next():
 
 def go_back():
     st.session_state.setup_step -= 1
+    if is_simple and st.session_state.setup_step == 1:
+        st.session_state.setup_step = 1 # U jednoduché zpět na 1 nejdeme, pokud nechceme
     for k in list(st.session_state.keys()):
         if k.startswith("w_"): del st.session_state[k]
     st.rerun()
@@ -49,7 +60,7 @@ select_options = available_providers if available_providers else ["(Zadejte klí
 
 st.title(t("nav_setup"))
 
-if st.session_state.setup_step == 1:
+if st.session_state.setup_step == 1 and not is_simple:
     st.subheader(t("setup_step1"))
     
     if "w_mode" not in st.session_state: st.session_state.w_mode = st.session_state.debate_mode
@@ -140,7 +151,7 @@ elif st.session_state.setup_step == 2:
                 st.session_state.w_role_b_prompt = text_b
                 st.session_state.role_b_prompt = st.session_state.w_role_b_prompt
 
-    if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
+    if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and not is_simple:
         st.divider()
         if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
             st.markdown(f"**{t('persona_c')} (Člověk)**")
@@ -174,12 +185,10 @@ elif st.session_state.setup_step == 2:
     st.markdown(f"**{t('moderator')}**")
     st.selectbox(f"{t('provider_select')}:", select_options, key="w_provider_mod", on_change=update_state, args=("w_provider_mod", "provider_mod"))
     
-    with st.expander(t("advanced_settings")):
-        # ZMĚNA: Popisek s upozorněním na max 7, hodnota 7
-        st.slider(f"{t('rounds')} (maximálně 7)", min_value=2, max_value=7, key="w_max_rounds", on_change=update_state, args=("w_max_rounds", "max_rounds"))
-        
-        # ZMĚNA: Paměť kontextu snížena na max 10 (logika: nemá smysl mít víc než je počet kol + rezerva)
-        st.slider(t("memory_limit_label"), min_value=2, max_value=10, key="w_memory_limit", on_change=update_state, args=("w_memory_limit", "memory_limit"))
+    if not is_simple:
+        with st.expander(t("advanced_settings")):
+            st.slider(f"{t('rounds')} (maximálně 7)", min_value=2, max_value=7, key="w_max_rounds", on_change=update_state, args=("w_max_rounds", "max_rounds"))
+            st.slider(t("memory_limit_label"), min_value=2, max_value=10, key="w_memory_limit", on_change=update_state, args=("w_memory_limit", "memory_limit"))
 
 elif st.session_state.setup_step == 3:
     st.subheader(t("setup_step3"))
@@ -190,13 +199,11 @@ elif st.session_state.setup_step == 3:
     st.radio(t("topic_type"), options=["manual", "upload"], format_func=lambda x: t(x), key="w_topic_input_type", on_change=update_state, args=("w_topic_input_type", "topic_input_type"))
     
     if st.session_state.w_topic_input_type == "manual":
-        # ZMĚNA: text_area místo text_input, výška 250px
         st.text_area(t("topic_text"), key="w_topic_input", on_change=update_state, args=("w_topic_input", "topic_input"), height=250)
         st.session_state.topic_document_text = ""
     else:
         st.text_input(t("topic_file"), key="w_topic_input", on_change=update_state, args=("w_topic_input", "topic_input"))
         st.caption("Povolené formáty: .md, .txt. Maximální délka textu: 45 000 znaků (cca 25 stran).")
-        # ZMĚNA: Pouze md a txt, label_visibility="collapsed" skryje výchozí text
         topic_files = st.file_uploader(t("upload_topic"), type=["md", "txt"], accept_multiple_files=True, label_visibility="collapsed")
         if topic_files:
             file_names = "_".join([f.name for f in topic_files])
@@ -217,7 +224,7 @@ elif st.session_state.setup_step == 3:
 st.divider()
 col1, col2 = st.columns([1, 1])
 with col1:
-    if st.session_state.setup_step > 1:
+    if st.session_state.setup_step > 1 and not (is_simple and st.session_state.setup_step == 2):
         st.button(t("back"), use_container_width=True, on_click=go_back)
 with col2:
     if st.session_state.setup_step < 3:
