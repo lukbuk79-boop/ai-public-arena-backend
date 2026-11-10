@@ -19,21 +19,18 @@ from utils.storage import get_next_counter, get_r2_client, save_critique_result,
 
 init_state()
 
-# Vynucení výchozí volby "Ručně"
 if "input_type_a" not in st.session_state: st.session_state.input_type_a = "Ručně"
 if "input_type_b" not in st.session_state: st.session_state.input_type_b = "Ručně"
 if "input_type_c" not in st.session_state: st.session_state.input_type_c = "Ručně"
 if "topic_input_type" not in st.session_state: st.session_state.topic_input_type = "Ručně"
+if "debate_type" not in st.session_state: st.session_state.debate_type = "advanced"
 
-# Inicializace paměti pro Souhrn
 if "summary_md" not in st.session_state: st.session_state.summary_md = ""
 if "summary_pdf" not in st.session_state: st.session_state.summary_pdf = b""
 if "summary_base_name" not in st.session_state: st.session_state.summary_base_name = ""
 
-# NOVÁ POMOCNÁ FUNKCE: Formátování jména s charakteristikou
 def get_display_name(name, temp_key, exp_key):
-    if not name:
-        return ""
+    if not name: return ""
     t_str = t(f"temperament_{temp_key}")
     e_str = t(f"expertise_{exp_key}")
     return f"{name} ({t_str}, {e_str})"
@@ -120,7 +117,6 @@ def render_critique_ui(available_providers_list):
         with st.expander(t("preview_critique"), expanded=False): st.markdown(st.session_state.critique_md)
 
 
-# Pomocná funkce pro uložení souhrnu (aby se kód neopakoval)
 def save_summary_to_state_and_r2(summary_text, model_name="External AI"):
     st.session_state.summary_md = f"# Souhrn debaty: {st.session_state.current_topic}\n\n**Datum:** {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n{summary_text}\n\n<small>Použitý model: {model_name}</small>"
     st.session_state.summary_pdf = generate_pdf(st.session_state.summary_md)
@@ -250,6 +246,7 @@ def render_summary_ui(available_providers_list):
 # HLAVNÍ TITULEK
 st.title(t("debate_title"))
 
+# --- ÚVODNÍ STRÁNKA S VOLBOU ---
 if not st.session_state.debate_active:
     if st.session_state.lang == "cs":
         st.markdown("""
@@ -275,10 +272,20 @@ if not st.session_state.debate_active:
     st.caption(t("debate_caption"))
     st.divider()
 
-    if st.button(t("nav_setup"), type="primary"):
-        st.switch_page("app_pages/setup.py")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🚀 Jednoduchá diskuze (AI vs AI)", type="primary", use_container_width=True):
+            st.session_state.debate_type = "simple"
+            st.switch_page("app_pages/setup.py")
+    with col2:
+        if st.button("⚙️ Pokročilá diskuze", use_container_width=True):
+            st.session_state.debate_type = "advanced"
+            st.switch_page("app_pages/setup.py")
+            
     st.stop()
 
+# --- POKUD DEBATA BĚŽÍ, POKRAČUJE ZDE ---
+is_simple = st.session_state.get("debate_type", "advanced") == "simple"
 available_providers = []
 if st.session_state.gemini_key.strip(): available_providers.append("Gemini")
 if st.session_state.mistral_key.strip(): available_providers.append("Mistral")
@@ -303,11 +310,10 @@ ai_kwargs = {
     "gemini_models": gemini_models, "mistral_models": mistral_models
 }
 
-mode = st.session_state.debate_mode
+mode = "ai_vs_ai" if is_simple else st.session_state.debate_mode
 participants = []
 lang = st.session_state.lang
 
-# --- ÚPRAVA ZDE: Přidání charakteristiky ke jménu ---
 name_a_display = get_display_name(st.session_state.role_a_name, st.session_state.temperament_a, st.session_state.expertise_a)
 prompt_a = enhance_role_prompt(st.session_state.role_a_prompt, st.session_state.temperament_a, st.session_state.expertise_a, st.session_state.response_length, st.session_state.debate_rules, lang)
 participants.append({"name": name_a_display, "type": "ai", "provider": st.session_state.provider_a, "prompt": prompt_a, "avatar": "🔵"})
@@ -319,14 +325,13 @@ else:
     prompt_b = enhance_role_prompt(st.session_state.role_b_prompt, st.session_state.temperament_b, st.session_state.expertise_b, st.session_state.response_length, st.session_state.debate_rules, lang)
     participants.append({"name": name_b_display, "type": "ai", "provider": st.session_state.provider_b, "prompt": prompt_b, "avatar": "🔴"})
 
-if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
+if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and not is_simple:
     if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
         participants.append({"name": st.session_state.role_c_name, "type": "human", "avatar": "🧑‍💻"})
     else:
         name_c_display = get_display_name(st.session_state.role_c_name, st.session_state.temperament_c, st.session_state.expertise_c)
         prompt_c = enhance_role_prompt(st.session_state.role_c_prompt, st.session_state.temperament_c, st.session_state.expertise_c, st.session_state.response_length, st.session_state.debate_rules, lang)
         participants.append({"name": name_c_display, "type": "ai", "provider": st.session_state.provider_c, "prompt": prompt_c, "avatar": "🟢"})
-# ---------------------------------------------------
 
 st.markdown(f"### 📌 Téma: *{st.session_state.current_topic}*")
 
@@ -407,8 +412,17 @@ if not st.session_state.debate_finished:
 
             try:
                 s3 = get_r2_client(); bucket = st.secrets["R2_BUCKET_NAME"]
-                s3.put_object(Bucket=bucket, Key=f"markdown/{full_base}.md", Body=st.session_state.md_content.encode("utf-8"))
-                s3.put_object(Bucket=bucket, Key=f"pdf/{full_base}.pdf", Body=st.session_state.pdf_bytes)
+                
+                # ROZLIŠENÍ CESTY PRO R2
+                if is_simple:
+                    md_path = f"simply_discussion/md/{full_base}.md"
+                    pdf_path = f"simply_discussion/pdf/{full_base}.pdf"
+                else:
+                    md_path = f"markdown/{full_base}.md"
+                    pdf_path = f"pdf/{full_base}.pdf"
+                    
+                s3.put_object(Bucket=bucket, Key=md_path, Body=st.session_state.md_content.encode("utf-8"))
+                s3.put_object(Bucket=bucket, Key=pdf_path, Body=st.session_state.pdf_bytes)
                 st.success("✅ Uloženo na R2.")
             except Exception as e: st.error(f"R2 Error: {e}")
 
@@ -434,8 +448,10 @@ else:
     st.divider()
     render_downloads()
     
-    render_critique_ui(available_providers)
-    render_summary_ui(available_providers)
+    # ZOBRAZENÍ KRITIKY A SOUHRNU JEN PRO POKROČILOU DISKUZI
+    if not is_simple:
+        render_critique_ui(available_providers)
+        render_summary_ui(available_providers)
     
     st.divider()
 
