@@ -3,15 +3,12 @@ import random
 from utils.config import t, PRESET_KEYS, TEMPERAMENT_KEYS, EXPERTISE_KEYS, LENGTH_KEYS, GOAL_KEYS, RULE_KEYS, MODE_KEYS, PRESETS
 from utils.pdf_export import extract_text_from_file
 
-# Zjištění, jaký typ debaty uživatel zvolil
 is_simple = st.session_state.get("debate_type", "advanced") == "simple"
 
-# Pokud jde o jednoduchou diskuzi a jsme v kroku 1, přeskočíme na krok 2
 if is_simple and st.session_state.setup_step == 1:
     st.session_state.setup_step = 2
-    st.session_state.debate_mode = "ai_vs_ai" # Vynutíme AI vs AI
+    st.session_state.debate_mode = "ai_vs_ai"
 
-# Seznamy možností s "undefined" na prvním místě
 TEMPERAMENT_OPTIONS = ["undefined"] + [k for k in TEMPERAMENT_KEYS if k != "undefined"]
 EXPERTISE_OPTIONS = ["undefined"] + [k for k in EXPERTISE_KEYS if k != "undefined"]
 
@@ -42,7 +39,6 @@ def apply_preset_callback():
     st.session_state.expertise_c = cfg["expertise_a"]
 
 def randomize_persona(prefix):
-    # Náhodný výběr VYNEHÁVÁ "undefined"
     valid_temperaments = [k for k in TEMPERAMENT_KEYS if k != "undefined"]
     valid_expertises = [k for k in EXPERTISE_KEYS if k != "undefined"]
     new_t = random.choice(valid_temperaments)
@@ -97,7 +93,6 @@ elif st.session_state.setup_step == 2:
     if st.session_state.provider_c not in select_options: st.session_state.provider_c = select_options[0]
     if st.session_state.provider_mod not in select_options: st.session_state.provider_mod = select_options[0]
 
-    # Inicializace s "undefined" jako výchozí hodnotou
     for p in ["a", "b", "c"]:
         if f"w_role_{p}_name" not in st.session_state: st.session_state[f"w_role_{p}_name"] = st.session_state[f"role_{p}_name"]
         if f"w_provider_{p}" not in st.session_state: st.session_state[f"w_provider_{p}"] = st.session_state[f"provider_{p}"]
@@ -127,12 +122,12 @@ elif st.session_state.setup_step == 2:
     if st.session_state.w_input_type_a == "manual": 
         st.text_area(f"{t('instructions')} A", key="w_role_a_prompt", on_change=update_state, args=("w_role_a_prompt", "role_a_prompt"), height=150)
     else:
-        st.caption("Povolené formáty: .md, .txt. Maximální délka: 10 000 znaků (cca 5 stran).")
+        st.caption(t("allowed_persona"))
         file_a = st.file_uploader(f"{t('upload')} A", type=["md", "txt"], key="file_a", label_visibility="collapsed")
         if file_a: 
             text_a = extract_text_from_file(file_a)
             if len(text_a) > 10000:
-                st.warning("⚠️ Soubor s instrukcemi je příliš dlouhý, byl zkrácen na 10 000 znaků.")
+                st.warning(t("err_persona_too_long"))
                 text_a = text_a[:10000]
             st.session_state.w_role_a_prompt = text_a
             st.session_state.role_a_prompt = st.session_state.w_role_a_prompt
@@ -140,7 +135,7 @@ elif st.session_state.setup_step == 2:
     st.divider()
 
     if mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
-        st.markdown(f"**{t('persona_b')} (Člověk)**")
+        st.markdown(f"**{t('persona_b')} ({t('human')})**")
         st.text_input(t("human_name"), key="w_role_b_name", on_change=update_state, args=("w_role_b_name", "role_b_name"))
     else:
         st.markdown(f"**{t('persona_b')} (AI)**")
@@ -158,12 +153,12 @@ elif st.session_state.setup_step == 2:
         if st.session_state.w_input_type_b == "manual": 
             st.text_area(f"{t('instructions')} B", key="w_role_b_prompt", on_change=update_state, args=("w_role_b_prompt", "role_b_prompt"), height=150)
         else:
-            st.caption("Povolené formáty: .md, .txt. Maximální délka: 10 000 znaků (cca 5 stran).")
+            st.caption(t("allowed_persona"))
             file_b = st.file_uploader(f"{t('upload')} B", type=["md", "txt"], key="file_b", label_visibility="collapsed")
             if file_b: 
                 text_b = extract_text_from_file(file_b)
                 if len(text_b) > 10000:
-                    st.warning("⚠️ Soubor s instrukcemi je příliš dlouhý, byl zkrácen na 10 000 znaků.")
+                    st.warning(t("err_persona_too_long"))
                     text_b = text_b[:10000]
                 st.session_state.w_role_b_prompt = text_b
                 st.session_state.role_b_prompt = st.session_state.w_role_b_prompt
@@ -171,7 +166,7 @@ elif st.session_state.setup_step == 2:
     if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and not is_simple:
         st.divider()
         if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
-            st.markdown(f"**{t('persona_c')} (Člověk)**")
+            st.markdown(f"**{t('persona_c')} ({t('human')})**")
             st.text_input(t("human_name"), key="w_role_c_name", on_change=update_state, args=("w_role_c_name", "role_c_name"))
         else:
             st.markdown(f"**{t('persona_c')} (AI)**")
@@ -188,12 +183,12 @@ elif st.session_state.setup_step == 2:
             if st.session_state.w_input_type_c == "manual": 
                 st.text_area(f"{t('instructions')} C", key="w_role_c_prompt", on_change=update_state, args=("w_role_c_prompt", "role_c_prompt"), height=150)
             else:
-                st.caption("Povolené formáty: .md, .txt. Maximální délka: 10 000 znaků (cca 5 stran).")
+                st.caption(t("allowed_persona"))
                 file_c = st.file_uploader(f"{t('upload')} C", type=["md", "txt"], key="file_c", label_visibility="collapsed")
                 if file_c: 
                     text_c = extract_text_from_file(file_c)
                     if len(text_c) > 10000:
-                        st.warning("⚠️ Soubor s instrukcemi je příliš dlouhý, byl zkrácen na 10 000 znaků.")
+                        st.warning(t("err_persona_too_long"))
                         text_c = text_c[:10000]
                     st.session_state.w_role_c_prompt = text_c
                     st.session_state.role_c_prompt = st.session_state.w_role_c_prompt
@@ -204,7 +199,7 @@ elif st.session_state.setup_step == 2:
     
     if not is_simple:
         with st.expander(t("advanced_settings")):
-            st.slider(f"{t('rounds')} (maximálně 7)", min_value=2, max_value=7, key="w_max_rounds", on_change=update_state, args=("w_max_rounds", "max_rounds"))
+            st.slider(f"{t('rounds')} {t('max_7')}", min_value=2, max_value=7, key="w_max_rounds", on_change=update_state, args=("w_max_rounds", "max_rounds"))
             st.slider(t("memory_limit_label"), min_value=2, max_value=10, key="w_memory_limit", on_change=update_state, args=("w_memory_limit", "memory_limit"))
 
 elif st.session_state.setup_step == 3:
@@ -220,7 +215,7 @@ elif st.session_state.setup_step == 3:
         st.session_state.topic_document_text = ""
     else:
         st.text_input(t("topic_file"), key="w_topic_input", on_change=update_state, args=("w_topic_input", "topic_input"))
-        st.caption("Povolené formáty: .md, .txt. Maximální délka textu: 45 000 znaků (cca 25 stran).")
+        st.caption(t("allowed_topic"))
         topic_files = st.file_uploader(t("upload_topic"), type=["md", "txt"], accept_multiple_files=True, label_visibility="collapsed")
         if topic_files:
             file_names = "_".join([f.name for f in topic_files])
@@ -231,12 +226,12 @@ elif st.session_state.setup_step == 3:
                 
                 MAX_ZNAKU = 45000
                 if len(full_text) > MAX_ZNAKU:
-                    st.warning(f"⚠️ Celkový text je příliš dlouhý ({len(full_text)} znaků). Pro účely diskuze byl zkrácen na prvních {MAX_ZNAKU} znaků (cca 25 stran).")
+                    st.warning(t("err_topic_too_long", len=len(full_text), max=MAX_ZNAKU))
                     full_text = full_text[:MAX_ZNAKU] + "\n\n[... Zbývající text byl zkrácen ...]"
                 
                 st.session_state.topic_document_text = full_text
                 st.session_state.uploaded_files_hash = file_names
-                st.success(f"✅ Načteno {len(topic_files)} dokumentů (zpracováno {len(full_text)} znaků).")
+                st.success(t("ok_docs_loaded", len=len(topic_files), len_full=len(full_text)))
 
 st.divider()
 col1, col2 = st.columns([1, 1])
@@ -254,9 +249,9 @@ with col2:
             if st.session_state.debate_mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and not st.session_state.role_c_name.strip(): is_valid = False
 
             if not is_valid:
-                st.error("Vyplňte prosím všechna povinná pole (jména a téma).")
+                st.error(t("err_validation"))
             elif st.session_state.topic_input_type == "upload" and not st.session_state.topic_document_text:
-                st.error("Nahrajte prosím alespoň jeden dokument.")
+                st.error(t("err_no_docs"))
             else:
                 st.session_state.debate_active = True
                 st.session_state.debate_finished = False
