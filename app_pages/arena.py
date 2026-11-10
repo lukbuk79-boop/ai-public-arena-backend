@@ -30,6 +30,14 @@ if "summary_md" not in st.session_state: st.session_state.summary_md = ""
 if "summary_pdf" not in st.session_state: st.session_state.summary_pdf = b""
 if "summary_base_name" not in st.session_state: st.session_state.summary_base_name = ""
 
+# NOVÁ POMOCNÁ FUNKCE: Formátování jména s charakteristikou
+def get_display_name(name, temp_key, exp_key):
+    if not name:
+        return ""
+    t_str = t(f"temperament_{temp_key}")
+    e_str = t(f"expertise_{exp_key}")
+    return f"{name} ({t_str}, {e_str})"
+
 def render_downloads():
     base_name = st.session_state.get("file_base_name", "debata")
     md_b64 = base64.b64encode(st.session_state.md_content.encode('utf-8')).decode('utf-8')
@@ -117,7 +125,6 @@ def save_summary_to_state_and_r2(summary_text, model_name="External AI"):
     st.session_state.summary_md = f"# Souhrn debaty: {st.session_state.current_topic}\n\n**Datum:** {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n{summary_text}\n\n<small>Použitý model: {model_name}</small>"
     st.session_state.summary_pdf = generate_pdf(st.session_state.summary_md)
     
-    # Zde využíváme celý název základu souboru (např. 00018_state_systems_comparison)
     base_name = st.session_state.get("file_base_name", "debata")
     base = f"{base_name}_souhrn"
     st.session_state.summary_base_name = base
@@ -142,7 +149,6 @@ def render_summary_ui(available_providers_list):
     
     tab_api, tab_ext = st.tabs(["Přímé API (automatické)", "Externí AI chat (manuální)"])
 
-    # --- ZÁLOŽKA 1: AUTOMATICKÉ API ---
     with tab_api:
         if not available_providers_list:
             st.warning("Pro generování souhrnu musíte mít v menu zadaný alespoň jeden API klíč.")
@@ -191,7 +197,6 @@ def render_summary_ui(available_providers_list):
                     except Exception as e:
                         st.error(f"Chyba při generování souhrnu: {e}")
 
-    # --- ZÁLOŽKA 2: EXTERNÍ AI ---
     with tab_ext:
         st.info("Zkopírujte si průběh debaty, nechte ho shrnout externí AI (např. ChatGPT) a výsledek vložte sem. Souhrn se uloží na R2.")
         
@@ -229,7 +234,6 @@ def render_summary_ui(available_providers_list):
             else:
                 st.error("Nejprve vložte text souhrnu.")
 
-    # Zobrazení hotového souhrnu (společné pro obě záložky)
     if st.session_state.get("summary_md"):
         st.markdown("---")
         st.subheader("✅ Hotový souhrn")
@@ -242,10 +246,10 @@ def render_summary_ui(available_providers_list):
         
         st.markdown(f'<div style="display:flex; gap:10px; margin:10px 0;"><a href="data:application/octet-stream;base64,{md_b64}" download="{base}.md" style="flex:1; text-align:center; padding:10px; background:#f0f2f6; color:#31333f; text-decoration:none; border-radius:5px; border:1px solid #d6d6d6;">📥 Stáhnout souhrn (.md)</a><a href="data:application/pdf;base64,{pdf_b64}" download="{base}.pdf" style="flex:1; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:5px;">📄 Stáhnout souhrn (.pdf)</a></div>', unsafe_allow_html=True)
 
+
 # HLAVNÍ TITULEK
 st.title(t("debate_title"))
 
-# --- ÚVODNÍ STRÁNKA S MODRÝM BOXEM ---
 if not st.session_state.debate_active:
     if st.session_state.lang == "cs":
         st.markdown("""
@@ -275,7 +279,6 @@ if not st.session_state.debate_active:
         st.switch_page("app_pages/setup.py")
     st.stop()
 
-# --- POKUD DEBATA BĚŽÍ, POKRAČUJE ZDE ---
 available_providers = []
 if st.session_state.gemini_key.strip(): available_providers.append("Gemini")
 if st.session_state.mistral_key.strip(): available_providers.append("Mistral")
@@ -289,7 +292,6 @@ gemini_models = get_available_gemini_models(gemini_client) if gemini_client else
 mistral_models = get_available_mistral_models(mistral_client) if mistral_client else []
 nvidia_models = NVIDIA_PREFERRED if nim_client else []
 
-# Uložíme klienty do session_state pro pozdější použití v souhrnu
 st.session_state.gemini_client = gemini_client
 st.session_state.mistral_client = mistral_client
 st.session_state.nim_client = nim_client
@@ -305,21 +307,26 @@ mode = st.session_state.debate_mode
 participants = []
 lang = st.session_state.lang
 
+# --- ÚPRAVA ZDE: Přidání charakteristiky ke jménu ---
+name_a_display = get_display_name(st.session_state.role_a_name, st.session_state.temperament_a, st.session_state.expertise_a)
 prompt_a = enhance_role_prompt(st.session_state.role_a_prompt, st.session_state.temperament_a, st.session_state.expertise_a, st.session_state.response_length, st.session_state.debate_rules, lang)
-participants.append({"name": st.session_state.role_a_name, "type": "ai", "provider": st.session_state.provider_a, "prompt": prompt_a, "avatar": "🔵"})
+participants.append({"name": name_a_display, "type": "ai", "provider": st.session_state.provider_a, "prompt": prompt_a, "avatar": "🔵"})
 
 if mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
     participants.append({"name": st.session_state.role_b_name, "type": "human", "avatar": "🧑‍💻"})
 else:
+    name_b_display = get_display_name(st.session_state.role_b_name, st.session_state.temperament_b, st.session_state.expertise_b)
     prompt_b = enhance_role_prompt(st.session_state.role_b_prompt, st.session_state.temperament_b, st.session_state.expertise_b, st.session_state.response_length, st.session_state.debate_rules, lang)
-    participants.append({"name": st.session_state.role_b_name, "type": "ai", "provider": st.session_state.provider_b, "prompt": prompt_b, "avatar": "🔴"})
+    participants.append({"name": name_b_display, "type": "ai", "provider": st.session_state.provider_b, "prompt": prompt_b, "avatar": "🔴"})
 
 if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
     if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
         participants.append({"name": st.session_state.role_c_name, "type": "human", "avatar": "🧑‍💻"})
     else:
+        name_c_display = get_display_name(st.session_state.role_c_name, st.session_state.temperament_c, st.session_state.expertise_c)
         prompt_c = enhance_role_prompt(st.session_state.role_c_prompt, st.session_state.temperament_c, st.session_state.expertise_c, st.session_state.response_length, st.session_state.debate_rules, lang)
-        participants.append({"name": st.session_state.role_c_name, "type": "ai", "provider": st.session_state.provider_c, "prompt": prompt_c, "avatar": "🟢"})
+        participants.append({"name": name_c_display, "type": "ai", "provider": st.session_state.provider_c, "prompt": prompt_c, "avatar": "🟢"})
+# ---------------------------------------------------
 
 st.markdown(f"### 📌 Téma: *{st.session_state.current_topic}*")
 
@@ -427,10 +434,7 @@ else:
     st.divider()
     render_downloads()
     
-    # UI pro kritiku
     render_critique_ui(available_providers)
-    
-    # UI pro souhrn (s novými záložkami API / Externí)
     render_summary_ui(available_providers)
     
     st.divider()
@@ -440,6 +444,6 @@ if st.session_state.debate_finished:
         st.session_state.debate_active = False
         st.session_state.debate_finished = False
         st.session_state.full_history = []
-        st.session_state.summary_md = "" # Reset souhrnu
+        st.session_state.summary_md = ""
         reset_critique_state()
         st.rerun()
