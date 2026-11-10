@@ -420,12 +420,13 @@ if not st.session_state.debate_finished:
             try:
                 s3 = get_r2_client(); bucket = st.secrets["R2_BUCKET_NAME"]
                 
+                # ZDE JE ÚPRAVA CEST PRO R2
                 if is_simple:
-                    md_path = f"simply_discussion/md/{full_base}.md"
+                    md_path = f"simply_discussion/markdown/{full_base}.md"
                     pdf_path = f"simply_discussion/pdf/{full_base}.pdf"
                 else:
-                    md_path = f"markdown/{full_base}.md"
-                    pdf_path = f"pdf/{full_base}.pdf"
+                    md_path = f"advanced_discussion/markdown/{full_base}.md"
+                    pdf_path = f"advanced_discussion/pdf/{full_base}.pdf"
                     
                 s3.put_object(Bucket=bucket, Key=md_path, Body=st.session_state.md_content.encode("utf-8"))
                 s3.put_object(Bucket=bucket, Key=pdf_path, Body=st.session_state.pdf_bytes)
