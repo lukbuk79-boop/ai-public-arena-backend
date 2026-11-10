@@ -31,9 +31,16 @@ if "summary_base_name" not in st.session_state: st.session_state.summary_base_na
 
 def get_display_name(name, temp_key, exp_key):
     if not name: return ""
-    t_str = t(f"temperament_{temp_key}")
-    e_str = t(f"expertise_{exp_key}")
-    return f"{name} ({t_str}, {e_str})"
+    parts = []
+    # Pokud je temperament "undefined", vypíšeme jen jméno a případně expertizu
+    if temp_key and temp_key != "undefined":
+        parts.append(t(f"temperament_{temp_key}"))
+    if exp_key and exp_key != "undefined":
+        parts.append(t(f"expertise_{exp_key}"))
+    
+    if not parts:
+        return name
+    return f"{name} ({', '.join(parts)})"
 
 def render_downloads():
     base_name = st.session_state.get("file_base_name", "debata")
@@ -420,7 +427,6 @@ if not st.session_state.debate_finished:
             try:
                 s3 = get_r2_client(); bucket = st.secrets["R2_BUCKET_NAME"]
                 
-                # ZDE JE ÚPRAVA CEST PRO R2
                 if is_simple:
                     md_path = f"simply_discussion/markdown/{full_base}.md"
                     pdf_path = f"simply_discussion/pdf/{full_base}.pdf"
