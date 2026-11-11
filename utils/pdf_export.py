@@ -1,6 +1,6 @@
 import pypdf
 import markdown
-from weasyprint import HTML, CSS
+import ferropdf
 import streamlit as st
 
 def extract_text_from_file(uploaded_file):
@@ -11,7 +11,8 @@ def extract_text_from_file(uploaded_file):
             pdf_reader = pypdf.PdfReader(uploaded_file)
             text = ""
             for page in pdf_reader.pages:
-                if page.extract_text(): text += page.extract_text() + "\n"
+                if page.extract_text(): 
+                    text += page.extract_text() + "\n"
             return text.strip()
         else:
             return uploaded_file.read().decode("utf-8").strip()
@@ -21,6 +22,8 @@ def extract_text_from_file(uploaded_file):
 
 def generate_pdf(text_content):
     html_body = markdown.markdown(text_content, extensions=['tables', 'nl2br'])
+    
+    # CSS vložíme přímo do HTML, FerroPDF ho parsuje z <style> tagu.
     css_style = """
     @page { size: A4; margin: 2cm; @bottom-center { content: "Page " counter(page) " of " counter(pages); font-size: 9pt; color: #666; } }
     body { font-family: 'DejaVu Sans', sans-serif; font-size: 11pt; line-height: 1.5; color: #333; }
@@ -35,9 +38,23 @@ def generate_pdf(text_content):
     th { background-color: #edf2f7; font-weight: bold; color: #2d3748; }
     tr:nth-child(even) { background-color: #f7fafc; }
     """
-    full_html = f"<!DOCTYPE html><html lang='cs'><head><meta charset='utf-8'></head><body>{html_body}</body></html>"
+    
+    full_html = f"""<!DOCTYPE html>
+    <html lang="cs">
+    <head>
+        <meta charset="utf-8">
+        <style>{css_style}</style>
+    </head>
+    <body>
+        {html_body}
+    </body>
+    </html>"""
+    
     try:
-        return HTML(string=full_html).write_pdf(stylesheets=[CSS(string=css_style)])
+        # FerroPDF očekává page_size a margin buď v Options, nebo v CSS.
+        # Pro jistotu je předáme i v Options.
+        options = ferropdf.Options(page_size="A4", margin="20mm")
+        return ferropdf.from_html(full_html, options=options)
     except Exception as e:
         st.error(f"PDF generation error: {e}")
         return b""
