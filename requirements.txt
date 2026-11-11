@@ -3,5 +3,5 @@ google-genai
 openai
 pypdf
 markdown
-ferropdf
+fpdf2
 boto3
