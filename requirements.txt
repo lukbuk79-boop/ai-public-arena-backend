@@ -3,5 +3,5 @@ google-genai
 openai
 pypdf
 markdown
-pymupdf
+weasyprint
 boto3
