@@ -113,8 +113,8 @@ elif st.session_state.setup_step == 2:
     
     if not is_simple:
         col_t, col_e = st.columns(2)
-        with col_t: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_a", on_change=update_state, args=("w_temperament_a", "temperament_a"))
-        with col_e: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_a", on_change=update_state, args=("w_expertise_a", "expertise_a"))
+        with col_t: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_a", on_change=update_state, args=("w_temperament_a", "temperament_a"), help=t("temperament_hint"))
+        with col_e: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_a", on_change=update_state, args=("w_expertise_a", "expertise_a"), help=t("temperament_hint"))
         st.button(t("random_button"), key="random_a", on_click=randomize_persona, args=("a",), use_container_width=True)
     
     st.radio(f"{t('input_type')} A:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_a", on_change=update_state, args=("w_input_type_a", "input_type_a"), index=0 if st.session_state.w_input_type_a == "manual" else 1)
@@ -144,8 +144,8 @@ elif st.session_state.setup_step == 2:
         
         if not is_simple:
             col_t2, col_e2 = st.columns(2)
-            with col_t2: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_b", on_change=update_state, args=("w_temperament_b", "temperament_b"))
-            with col_e2: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_b", on_change=update_state, args=("w_expertise_b", "expertise_b"))
+            with col_t2: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_b", on_change=update_state, args=("w_temperament_b", "temperament_b"), help=t("temperament_hint"))
+            with col_e2: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_b", on_change=update_state, args=("w_expertise_b", "expertise_b"), help=t("temperament_hint"))
             st.button(t("random_button"), key="random_b", on_click=randomize_persona, args=("b",), use_container_width=True)
         
         st.radio(f"{t('input_type')} B:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_b", on_change=update_state, args=("w_input_type_b", "input_type_b"), index=0 if st.session_state.w_input_type_b == "manual" else 1)
@@ -174,8 +174,8 @@ elif st.session_state.setup_step == 2:
             st.selectbox(f"{t('provider_select')} C:", select_options, key="w_provider_c", on_change=update_state, args=("w_provider_c", "provider_c"))
             
             col_t3, col_e3 = st.columns(2)
-            with col_t3: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_c", on_change=update_state, args=("w_temperament_c", "temperament_c"))
-            with col_e3: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_c", on_change=update_state, args=("w_expertise_c", "expertise_c"))
+            with col_t3: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_c", on_change=update_state, args=("w_temperament_c", "temperament_c"), help=t("temperament_hint"))
+            with col_e3: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_c", on_change=update_state, args=("w_expertise_c", "expertise_c"), help=t("temperament_hint"))
             
             st.button(t("random_button"), key="random_c", on_click=randomize_persona, args=("c",), use_container_width=True)
             st.radio(f"{t('input_type')} C:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_c", on_change=update_state, args=("w_input_type_c", "input_type_c"), index=0 if st.session_state.w_input_type_c == "manual" else 1)
