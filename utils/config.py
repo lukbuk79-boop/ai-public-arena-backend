@@ -2,6 +2,7 @@ import streamlit as st
 
 TEXTS = {
     "cs": {
+        "temperament_hint": "Pokud diskutuje známá osobnost (např. historická postava), nechte 'Nedefinováno'. Jejich charakteristiku napište přímo do instrukcí.",
         "lang_name": "Jazyk / Language", "nav": "🧭 Navigace", "nav_arena": "⚔️ Debatní Aréna", "nav_help": "❓ Nápověda a návody", "nav_setup": "⚙️ Nastavení debaty",
         "api_keys": "🔑 API klíče", "save_keys": "💾 Uložit klíče do prohlížeče", "save_keys_success": "✅ Klíče byly uloženy do paměti prohlížeče.",
         "clear_keys": "🧹 Vymazat klíče z paměti", "keys_warning": "🔒 Klíče jsou uloženy pouze dočasně v paměti stránky. Po zavření nebo obnovení zmizí.",
@@ -98,6 +99,7 @@ TEXTS = {
         "judge_prompt": "Jsi odborník na analýzu a sumarizaci textu. Na základě průběhu debaty vytvoř strukturovaný souhrn. Výstup by měl obsahovat tyto sekce:\n### Hlavní shody\n### Hlavní neshody\n### Závěr\nBuď stručný, ale výstižný. Zmiň klíčové argumenty diskutujících.",
     },
     "en": {
+        "temperament_hint": "If a well-known personality is debating (e.g. a historical figure), leave 'Undefined'. Put their characteristics directly into the instructions.",
         "lang_name": "Language / Jazyk", "nav": "🧭 Navigation", "nav_arena": "⚔️ Debate Arena", "nav_help": "❓ Help & Guides", "nav_setup": "⚙️ Debate Settings",
         "api_keys": "🔑 API Keys", "save_keys": "💾 Save Keys to Browser", "save_keys_success": "✅ Keys have been saved to browser memory.",
         "clear_keys": "🧹 Clear keys from memory", "keys_warning": "🔒 Keys are stored only temporarily in page memory. They will disappear after closing or refreshing.",
