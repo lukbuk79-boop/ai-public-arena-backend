@@ -24,7 +24,6 @@ def extract_text_from_file(uploaded_file):
         return ""
 
 def get_logo_base64():
-    """Převede logo na base64, aby ho WeasyPrint našel všude."""
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         logo_path = os.path.join(current_dir, "..", "ai_arena.png")
@@ -39,17 +38,11 @@ def generate_pdf(text_content, topic=None):
     if topic is None:
         topic = st.session_state.get("current_topic", "AI Aréna")
 
-    # 1. Příprava HTML z Markdownu
     html_body = markdown.markdown(text_content, extensions=['tables', 'nl2br'])
-    
-    # 2. Logo jako base64 pro CSS
     logo_b64 = get_logo_base64()
     logo_data_uri = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
-    
-    # 3. Získání aktuálního data
     current_date = datetime.now().strftime("%d.%m.%Y")
 
-    # 4. HTML pro titulní stranu
     cover_html = f"""
     <div class="cover-page">
         {'<img src="' + logo_data_uri + '" class="cover-logo" />' if logo_b64 else ''}
@@ -59,7 +52,6 @@ def generate_pdf(text_content, topic=None):
     </div>
     """
 
-    # 5. Kompletní HTML dokument
     full_html = f"""
     <!DOCTYPE html>
     <html lang='cs'>
@@ -73,7 +65,6 @@ def generate_pdf(text_content, topic=None):
     </html>
     """
 
-    # 6. CSS styly (červená + zlatá)
     css_style = f"""
     @page {{
         size: A4;
@@ -104,9 +95,10 @@ def generate_pdf(text_content, topic=None):
         }}
     }}
     
-    /* Speciální styly pro první stránku (titulní) */
+    /* ZDE JE ZMĚNA: Tmavé pozadí a nulové okraje pro celou první stránku */
     @page :first {{
         margin: 0;
+        background-color: #0a0a0c;
         @top-left {{ content: none; }}
         @top-right {{ content: none; }}
         @bottom-left {{ content: none; }}
@@ -123,22 +115,23 @@ def generate_pdf(text_content, topic=None):
     /* --- TITULNÍ STRANA --- */
     .cover-page {{
         page-break-after: always;
-        text-align: center;
-        padding-top: 150px;
-        background: linear-gradient(135deg, #0a0a0c 0%, #1a1a24 100%);
-        color: white;
+        width: 100%;
         height: 100%;
+        text-align: center;
+        padding-top: 200px; /* Posun textu dolů */
+        box-sizing: border-box;
     }}
     .cover-logo {{
-        width: 220px;
-        margin-bottom: 50px;
-        filter: drop-shadow(0 0 20px rgba(255, 51, 51, 0.6));
+        width: 280px;
+        margin-bottom: 60px;
+        /* Přidá jemný červený svit okolo loga, který splyne s pozadím */
+        filter: drop-shadow(0 0 30px rgba(255, 51, 51, 0.5)); 
     }}
     .cover-title {{
         color: #ff3333;
-        font-size: 26pt;
+        font-size: 28pt;
         font-weight: bold;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
         padding: 0 2cm;
     }}
     .cover-subtitle {{
@@ -149,7 +142,7 @@ def generate_pdf(text_content, topic=None):
     .cover-date {{
         color: #ffb300;
         font-size: 12pt;
-        margin-top: 80px;
+        margin-top: 100px;
     }}
 
     /* --- OBSAH --- */
