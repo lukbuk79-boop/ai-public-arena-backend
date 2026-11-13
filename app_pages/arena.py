@@ -1,7 +1,5 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import time
-import base64
 from datetime import datetime
 from google import genai
 from google.genai import types
@@ -39,15 +37,25 @@ def get_display_name(name, temp_key, exp_key):
 
 def render_downloads():
     base_name = st.session_state.get("file_base_name", "debata")
-    md_b64 = base64.b64encode(st.session_state.md_content.encode('utf-8')).decode('utf-8')
-    pdf_b64 = base64.b64encode(st.session_state.pdf_bytes).decode('utf-8') if st.session_state.pdf_bytes else ""
-    html_code = f"""
-    <div style="display: flex; gap: 10px;">
-        <a href="data:application/octet-stream;base64,{md_b64}" download="{base_name}.md" style="flex: 1; text-align: center; padding: 10px; background-color: #f0f2f6; color: #31333f; text-decoration: none; border-radius: 5px; border: 1px solid #d6d6d6; font-size: 16px;">{t('dl_md')}</a>
-        <a href="data:application/pdf;base64,{pdf_b64}" download="{base_name}.pdf" style="flex: 1; text-align: center; padding: 10px; background-color: #ff4b4b; color: white; text-decoration: none; border-radius: 5px; font-size: 16px;">{t('dl_pdf')}</a>
-    </div>
-    """
-    components.html(html_code, height=60)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.download_button(
+            label=t('dl_md'),
+            data=st.session_state.md_content,
+            file_name=f"{base_name}.md",
+            mime="text/markdown",
+            use_container_width=True
+        )
+    with col2:
+        if st.session_state.pdf_bytes:
+            st.download_button(
+                label=t('dl_pdf'),
+                data=st.session_state.pdf_bytes,
+                file_name=f"{base_name}.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
 
 def render_critique_ui(available_providers_list):
     if not st.session_state.md_content: return
@@ -79,8 +87,15 @@ def render_critique_ui(available_providers_list):
 
     with tab_ext:
         st.info(t("ext_info"))
-        pdf_b64 = base64.b64encode(st.session_state.pdf_bytes).decode('utf-8') if st.session_state.pdf_bytes else ""
-        st.markdown(f'<a href="data:application/pdf;base64,{pdf_b64}" download="{st.session_state.file_base_name}.pdf" style="display:block; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:6px; font-weight:600; margin-bottom: 15px;">{t("ext_step1")}</a>', unsafe_allow_html=True)
+        
+        if st.session_state.pdf_bytes:
+            st.download_button(
+                label=t("ext_step1"),
+                data=st.session_state.pdf_bytes,
+                file_name=f"{st.session_state.file_base_name}.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
 
         st.markdown(f"**{t('ext_step2')}**")
         chats = {"ChatGPT": "https://chatgpt.com/", "Claude": "https://claude.ai/new", "Gemini": "https://gemini.google.com/app", "Perplexity": "https://www.perplexity.ai/", "DeepSeek": "https://chat.deepseek.com/", "Copilot": "https://copilot.microsoft.com/", "Le Chat (Mistral)": "https://chat.mistral.ai/chat"}
@@ -105,9 +120,24 @@ def render_critique_ui(available_providers_list):
 
     if st.session_state.critique_md:
         st.divider(); st.subheader(t("ready_critique"))
-        md_b64 = base64.b64encode(st.session_state.critique_md.encode('utf-8')).decode('utf-8')
-        pdf_b64 = base64.b64encode(st.session_state.critique_pdf).decode('utf-8')
-        st.markdown(f'<div style="display:flex; gap:10px; margin:10px 0;"><a href="data:application/octet-stream;base64,{md_b64}" download="{st.session_state.critique_base}.md" style="flex:1; text-align:center; padding:10px; background:#f0f2f6; color:#31333f; text-decoration:none; border-radius:5px; border:1px solid #d6d6d6;">{t("dl_critique_md")}</a><a href="data:application/pdf;base64,{pdf_b64}" download="{st.session_state.critique_base}.pdf" style="flex:1; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:5px;">{t("dl_critique_pdf")}</a></div>', unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.download_button(
+                label=t("dl_critique_md"),
+                data=st.session_state.critique_md,
+                file_name=f"{st.session_state.critique_base}.md",
+                mime="text/markdown",
+                use_container_width=True
+            )
+        with col2:
+            if st.session_state.critique_pdf:
+                st.download_button(
+                    label=t("dl_critique_pdf"),
+                    data=st.session_state.critique_pdf,
+                    file_name=f"{st.session_state.critique_base}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
         with st.expander(t("preview_critique"), expanded=False): st.markdown(st.session_state.critique_md)
 
 def save_summary_to_state_and_r2(summary_text, model_name="External AI"):
@@ -163,8 +193,16 @@ def render_summary_ui(available_providers_list):
 
     with tab_ext:
         st.info(t("summary_ext_info"))
-        pdf_b64 = base64.b64encode(st.session_state.pdf_bytes).decode('utf-8') if st.session_state.pdf_bytes else ""
-        st.markdown(f'<a href="data:application/pdf;base64,{pdf_b64}" download="{st.session_state.file_base_name}.pdf" style="display:block; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:6px; font-weight:600; margin-bottom: 15px;">{t("summary_ext_step1")}</a>', unsafe_allow_html=True)
+        
+        if st.session_state.pdf_bytes:
+            st.download_button(
+                label=t("summary_ext_step1"),
+                data=st.session_state.pdf_bytes,
+                file_name=f"{st.session_state.file_base_name}.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+
         st.markdown(f"**{t('summary_ext_step2')}**")
         chats = {"ChatGPT": "https://chatgpt.com/", "Claude": "https://claude.ai/new", "Gemini": "https://gemini.google.com/app", "Perplexity": "https://www.perplexity.ai/", "DeepSeek": "https://chat.deepseek.com/", "Copilot": "https://copilot.microsoft.com/", "Le Chat (Mistral)": "https://chat.mistral.ai/chat"}
         cols = st.columns(4)
@@ -190,10 +228,26 @@ def render_summary_ui(available_providers_list):
     if st.session_state.get("summary_md"):
         st.markdown("---"); st.subheader(t("summary_ready"))
         with st.expander(t("summary_preview"), expanded=True): st.markdown(st.session_state.summary_md)
-        md_b64 = base64.b64encode(st.session_state.summary_md.encode('utf-8')).decode('utf-8')
-        pdf_b64 = base64.b64encode(st.session_state.summary_pdf).decode('utf-8')
+        
         base = st.session_state.summary_base_name
-        st.markdown(f'<div style="display:flex; gap:10px; margin:10px 0;"><a href="data:application/octet-stream;base64,{md_b64}" download="{base}.md" style="flex:1; text-align:center; padding:10px; background:#f0f2f6; color:#31333f; text-decoration:none; border-radius:5px; border:1px solid #d6d6d6;">{t("summary_dl_md")}</a><a href="data:application/pdf;base64,{pdf_b64}" download="{base}.pdf" style="flex:1; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:5px;">{t("summary_dl_pdf")}</a></div>', unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.download_button(
+                label=t("summary_dl_md"),
+                data=st.session_state.summary_md,
+                file_name=f"{base}.md",
+                mime="text/markdown",
+                use_container_width=True
+            )
+        with col2:
+            if st.session_state.summary_pdf:
+                st.download_button(
+                    label=t("summary_dl_pdf"),
+                    data=st.session_state.summary_pdf,
+                    file_name=f"{base}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
 
 # --- ÚVODNÍ STRÁNKA ---
 st.title(t("debate_title"))
