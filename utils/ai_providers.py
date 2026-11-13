@@ -1,3 +1,4 @@
+import streamlit as st
 import time
 import re
 from google import genai
@@ -5,26 +6,43 @@ from google.genai import types
 from openai import OpenAI
 from utils.config import TEMPERAMENT_PROMPTS, EXPERTISE_PROMPTS, LENGTH_PROMPTS, RULE_PROMPTS, JUDGE_GOAL_PROMPTS
 
-# PŘESNĚ PODLE VAŠEHO PŮVODNÍHO KÓDU:
 GEMINI_PREFERRED = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.8-flash"]
 NVIDIA_PREFERRED = ["nvidia/nemotron-3-ultra-550b-a55b"]
 MISTRAL_PREFERRED = ["ministral-3b-2512", "ministral-8b-2512", "codestral-2508", "mistral-large-2512"]
+
+def _apply_custom_model(model_list, custom_key):
+    """Pomocná funkce pro vložení vlastního modelu z session_state na první místo."""
+    custom = st.session_state.get(custom_key, "").strip()
+    if custom:
+        if custom in model_list:
+            model_list.remove(custom)
+        model_list.insert(0, custom)
+    return model_list
 
 def get_available_gemini_models(client):
     try:
         models = client.models.list()
         available = [m.name.replace('models/', '') for m in models if 'generateContent' in getattr(m, 'supported_generation_methods', [])]
         verified = [m for m in GEMINI_PREFERRED if m in available]
-        return verified if verified else (available if available else GEMINI_PREFERRED)
-    except Exception: return GEMINI_PREFERRED
+        default_list = verified if verified else (available if available else list(GEMINI_PREFERRED))
+    except Exception:
+        default_list = list(GEMINI_PREFERRED)
+    return _apply_custom_model(default_list, "custom_gemini_model")
 
 def get_available_mistral_models(client):
     try:
         all_models = client.models.list()
         available_ids = [m.id for m in all_models.data if m.id]
         verified = [m for m in MISTRAL_PREFERRED if m in available_ids]
-        return verified if verified else (available_ids[:3] if available_ids else MISTRAL_PREFERRED)
-    except Exception: return MISTRAL_PREFERRED
+        default_list = verified if verified else (available_ids[:3] if available_ids else list(MISTRAL_PREFERRED))
+    except Exception:
+        default_list = list(MISTRAL_PREFERRED)
+    return _apply_custom_model(default_list, "custom_mistral_model")
+
+def get_available_nvidia_models(client=None):
+    # NVIDIA API neumožňuje snadno listovat modely, použijeme statický seznam
+    default_list = list(NVIDIA_PREFERRED)
+    return _apply_custom_model(default_list, "custom_nvidia_model")
 
 def get_delay_for_provider(provider):
     if provider == "NVIDIA NIM": return 2.0
@@ -61,10 +79,12 @@ def generate_filename_from_topic(topic, call_ai_func, available_providers, **kwa
         except Exception: continue
     return "debata"
 
-def call_ai(system_prompt, user_prompt, provider, gemini_client=None, mistral_client=None, nim_client=None, gemini_models=None, mistral_models=None):
+def call_ai(system_prompt, user_prompt, provider, gemini_client=None, mistral_client=None, nim_client=None, gemini_models=None, mistral_models=None, nvidia_models=None):
     full_prompt = f"{system_prompt}\n\n---\n\n{user_prompt}"
+    
     if provider == "Gemini" and gemini_client:
-        for model_name in (gemini_models or GEMINI_PREFERRED):
+        models_to_try = gemini_models or get_available_gemini_models(gemini_client)
+        for model_name in models_to_try:
             for attempt in range(2):
                 try:
                     response = gemini_client.models.generate_content(model=model_name, contents=full_prompt, config=types.GenerateContentConfig())
@@ -73,9 +93,11 @@ def call_ai(system_prompt, user_prompt, provider, gemini_client=None, mistral_cl
                     if getattr(e, 'code', None) in [503, 429] and attempt == 0: time.sleep(2)
                     else: break
         raise Exception("All Gemini models failed.")
+        
     elif provider == "Mistral" and mistral_client:
+        models_to_try = mistral_models or get_available_mistral_models(mistral_client)
         messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
-        for model_name in (mistral_models or MISTRAL_PREFERRED):
+        for model_name in models_to_try:
             for attempt in range(2):
                 try:
                     response = mistral_client.chat.completions.create(model=model_name, messages=messages, temperature=0.7)
@@ -84,17 +106,37 @@ def call_ai(system_prompt, user_prompt, provider, gemini_client=None, mistral_cl
                     if attempt == 0: time.sleep(2)
                     else: break
         raise Exception("All Mistral models failed.")
+        
     elif provider == "NVIDIA NIM" and nim_client:
+        models_to_try = nvidia_models or get_available_nvidia_models(nim_client)
         messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
-        for model_name in NVIDIA_PREFERRED:
+        for model_name in models_to_try:
             for attempt in range(2):
                 try:
-                    response = nim_client.chat.completions.create(model=model_name, messages=messages, temperature=0.7, extra_body={"chat_template_kwargs":{"enable_thinking":True}})
+                    # Parametr enable_thinking posíláme POUZE pro Nemotron modely
+                    extra = {"chat_template_kwargs": {"enable_thinking": True}} if "nemotron" in model_name.lower() else None
+                    
+                    kwargs = {"model": model_name, "messages": messages, "temperature": 0.7}
+                    if extra:
+                        kwargs["extra_body"] = extra
+                        
+                    response = nim_client.chat.completions.create(**kwargs)
                     if response.choices[0].message.content: return response.choices[0].message.content, model_name
                 except Exception:
-                    if attempt == 0: time.sleep(2)
-                    else: break
+                    # Pokud selhal s extra_body, zkusíme znovu bez něj
+                    if extra and attempt == 0:
+                        try:
+                            kwargs.pop("extra_body", None)
+                            response = nim_client.chat.completions.create(**kwargs)
+                            if response.choices[0].message.content: return response.choices[0].message.content, model_name
+                        except Exception: pass
+                        time.sleep(1)
+                    elif attempt == 0: 
+                        time.sleep(2)
+                    else: 
+                        break
         raise Exception("All NVIDIA models failed.")
+        
     raise Exception(f"Provider {provider} není dostupný nebo chybí klient.")
 
 def call_critique_api(system_prompt, user_prompt, provider, keys):
@@ -106,6 +148,7 @@ def call_critique_api(system_prompt, user_prompt, provider, keys):
                 if r.text and r.text.strip(): return r.text, model
             except Exception: pass
         raise Exception("Kritika přes Gemini selhala.")
+        
     elif provider == "Mistral":
         client = OpenAI(api_key=keys["mistral"], base_url="https://api.mistral.ai/v1", timeout=180.0)
         for model in get_available_mistral_models(client):
@@ -114,12 +157,30 @@ def call_critique_api(system_prompt, user_prompt, provider, keys):
                 if r.choices[0].message.content: return r.choices[0].message.content, model
             except Exception: pass
         raise Exception("Kritika přes Mistral selhala.")
+        
     elif provider == "NVIDIA NIM":
         client = OpenAI(api_key=keys["nim"], base_url="https://integrate.api.nvidia.com/v1", timeout=180.0)
-        for model in NVIDIA_PREFERRED:
-            try:
-                r = client.chat.completions.create(model=model, messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}], temperature=0.7)
-                if r.choices[0].message.content: return r.choices[0].message.content, model
-            except Exception: pass
+        for model in get_available_nvidia_models(client):
+            for attempt in range(2):
+                try:
+                    extra = {"chat_template_kwargs": {"enable_thinking": True}} if "nemotron" in model.lower() else None
+                    kwargs = {"model": model, "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}], "temperature": 0.7}
+                    if extra: kwargs["extra_body"] = extra
+                    
+                    r = client.chat.completions.create(**kwargs)
+                    if r.choices[0].message.content: return r.choices[0].message.content, model
+                except Exception:
+                    if extra and attempt == 0:
+                        try:
+                            kwargs.pop("extra_body", None)
+                            r = client.chat.completions.create(**kwargs)
+                            if r.choices[0].message.content: return r.choices[0].message.content, model
+                        except Exception: pass
+                        time.sleep(1)
+                    elif attempt == 0:
+                        time.sleep(2)
+                    else:
+                        break
         raise Exception("Kritika přes NVIDIA selhala.")
+        
     raise Exception("Neznámý poskytovatel.")
