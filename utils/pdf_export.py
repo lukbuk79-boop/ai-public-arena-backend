@@ -25,10 +25,11 @@ def generate_pdf(text_content, topic=None):
         topic = st.session_state.get("current_topic", "AI Aréna")
 
     try:
-        # Převod Markdownu na HTML
+        # 1. Převod Markdownu na HTML
         html_body = markdown.markdown(text_content, extensions=['tables', 'nl2br'])
+        full_html = f"<html><body>{html_body}</body></html>"
         
-        # Základní CSS (barvy a formátování)
+        # 2. CSS styl
         css = """
         body { font-family: sans-serif; font-size: 11pt; color: #2d3748; }
         h1 { color: #ff3333; font-size: 18pt; margin-top: 20px; }
@@ -42,28 +43,36 @@ def generate_pdf(text_content, topic=None):
         td { padding: 8px; border: 1px solid #e2e8f0; }
         """
         
-        # Vytvoření dokumentu a stránky A4
+        # 3. Vytvoření dokumentu a Story
         doc = pymupdf.open()
-        page = doc.new_page()
-        rect = pymupdf.Rect(50, 50, page.rect.width - 50, page.rect.height - 50)
+        story = pymupdf.Story(html=full_html, user_css=css)
         
-        # Vložení HTML (scale_low=0.3 zmenší text až na 30 %, aby se vešel)
-        result = page.insert_htmlbox(rect, html_body, css=css, scale_low=0.3)
+        # 4. Formát A4 a okraje
+        page_rect = pymupdf.paper_rect("a4")
+        margin = 50
+        content_rect = pymupdf.Rect(margin, margin, page_rect.width - margin, page_rect.height - margin)
         
-        # OPRAVA: result je tuple (spare_height, scale). Kontrolujeme první hodnotu.
-        if isinstance(result, tuple) and result[0] < 0:
-            st.warning("Text je příliš dlouhý a na stránku se zcela nevešel. PDF bude obsahovat jen to, co se vešlo.")
-
-        # Uložení do bajtů – používáme write() pro větší spolehlivost
+        # 5. Smyčka pro vykreslování na více stránek
+        more = True
+        while more:
+            page = doc.new_page(width=page_rect.width, height=page_rect.height)
+            more, filled = story.place(content_rect)
+            if not filled:
+                break
+            story.draw(page)
+        
+        # 6. Uložení
         pdf_bytes = doc.write()
         doc.close()
         
         if not pdf_bytes or len(pdf_bytes) < 500:
-            st.error("Vygenerované PDF je prázdné nebo příliš malé.")
+            st.error("Vygenerované PDF je prázdné.")
             return b""
             
         return pdf_bytes
 
     except Exception as e:
         st.error(f"PDF generation error: {e}")
+        import traceback
+        st.error(traceback.format_exc())
         return b""
