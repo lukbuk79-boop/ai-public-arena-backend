@@ -52,11 +52,13 @@ def generate_pdf(text_content, topic=None):
     </div>
     """
 
+    # ZDE PŘIDÁVÁME DIV PRO VODOTISK
     full_html = f"""
     <!DOCTYPE html>
     <html lang='cs'>
     <head><meta charset='utf-8'></head>
     <body>
+        <div class="watermark"></div>
         {cover_html}
         <div class="content">
             {html_body}
@@ -69,12 +71,6 @@ def generate_pdf(text_content, topic=None):
     @page {{
         size: A4;
         margin: 2.5cm 2cm 2.5cm 2cm;
-        
-        /* VODOTISK NA POZADÍ */
-        background-image: url("{logo_data_uri}");
-        background-repeat: no-repeat;
-        background-position: center center;
-        background-size: 350px auto;
         
         @top-left {{
             content: "{topic}";
@@ -98,28 +94,28 @@ def generate_pdf(text_content, topic=None):
         }}
     }}
     
-    /* Úprava pro první stránku (titulní) - vypne vodoznak a okraje */
+    /* Titulní strana nemá okraje a má vlastní pozadí */
     @page :first {{
         margin: 0;
-        background-color: #0a0a0c;
-        background-image: none; /* Zde vodoznak nechceme */
         @top-left {{ content: none; }}
         @bottom-left {{ content: none; }}
         @bottom-right {{ content: none; }}
     }}
 
-    body {{
-        font-family: 'DejaVu Sans', sans-serif;
-        font-size: 11pt;
-        line-height: 1.5;
-        color: #2d3748;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-    }}
-
-    .content {{
-        width: 100%;
-        box-sizing: border-box;
+    /* --- VODOTISK NA POZADÍ --- */
+    .watermark {{
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 800px;  /* Opravdu velké logo */
+        height: 800px;
+        background-image: url("{logo_data_uri}");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        opacity: 0.03; /* TADY SE NASTAVUJE NEVIDITELNOST (3%) */
+        z-index: -1000; /* Posune obrázek za veškerý text */
     }}
 
     /* --- TITULNÍ STRANA --- */
@@ -130,6 +126,9 @@ def generate_pdf(text_content, topic=None):
         text-align: center;
         padding-top: 200px;
         box-sizing: border-box;
+        background-color: #0a0a0c; /* Toto překryje vodoznak na první stránce */
+        position: relative;
+        z-index: 10;
     }}
     .cover-logo {{
         width: 280px;
@@ -155,6 +154,20 @@ def generate_pdf(text_content, topic=None):
     }}
 
     /* --- OBSAH --- */
+    body {{
+        font-family: 'DejaVu Sans', sans-serif;
+        font-size: 11pt;
+        line-height: 1.5;
+        color: #2d3748;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }}
+
+    .content {{
+        width: 100%;
+        box-sizing: border-box;
+    }}
+
     .content h1 {{
         color: #ff3333;
         font-size: 22pt;
