@@ -5,6 +5,8 @@ import streamlit as st
 import base64
 import os
 from datetime import datetime
+from PIL import Image
+import io
 
 def extract_text_from_file(uploaded_file):
     if uploaded_file is None: return ""
@@ -23,7 +25,37 @@ def extract_text_from_file(uploaded_file):
         st.error(f"Error reading file {uploaded_file.name}: {e}")
         return ""
 
+def get_watermark_base64():
+    """Vytvoří z loga poloprůhledný vodoznak přímo v paměti (optimalizováno pro RAM)."""
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        logo_path = os.path.join(current_dir, "..", "ai_arena.png")
+        
+        if os.path.exists(logo_path):
+            # Otevřít obrázek a převést na RGBA
+            img = Image.open(logo_path).convert("RGBA")
+            
+            # Zmenšení obrázku na max 600x600 px (šetří RAM a zrychluje WeasyPrint)
+            img.thumbnail((600, 600), Image.Resampling.LANCZOS)
+            
+            # Ztlumení alfa kanálu (průhlednosti) na cca 8 %
+            datas = img.getdata()
+            new_data = []
+            for item in datas:
+                new_data.append((item[0], item[1], item[2], 20))
+            
+            img.putdata(new_data)
+            
+            # Uložit do paměti jako PNG
+            buffered = io.BytesIO()
+            img.save(buffered, format="PNG")
+            return base64.b64encode(buffered.getvalue()).decode("utf-8")
+    except Exception as e:
+        st.warning(f"Nepodařilo se vytvořit vodoznak: {e}")
+    return ""
+
 def get_logo_base64():
+    """Načte originální logo pro titulní stranu."""
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         logo_path = os.path.join(current_dir, "..", "ai_arena.png")
@@ -39,10 +71,17 @@ def generate_pdf(text_content, topic=None):
         topic = st.session_state.get("current_topic", "AI Aréna")
 
     html_body = markdown.markdown(text_content, extensions=['tables', 'nl2br'])
+    
+    # Načtení obrázků do Base64
     logo_b64 = get_logo_base64()
     logo_data_uri = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
+
+    watermark_b64 = get_watermark_base64()
+    watermark_uri = f"data:image/png;base64,{watermark_b64}" if watermark_b64 else ""
+
     current_date = datetime.now().strftime("%d.%m.%Y")
 
+    # HTML pro titulní stranu
     cover_html = f"""
     <div class="cover-page">
         {'<img src="' + logo_data_uri + '" class="cover-logo" />' if logo_b64 else ''}
@@ -52,13 +91,12 @@ def generate_pdf(text_content, topic=None):
     </div>
     """
 
-    # ZDE PŘIDÁVÁME DIV PRO VODOTISK
+    # Kompletní HTML dokument
     full_html = f"""
     <!DOCTYPE html>
     <html lang='cs'>
     <head><meta charset='utf-8'></head>
     <body>
-        <div class="watermark"></div>
         {cover_html}
         <div class="content">
             {html_body}
@@ -67,11 +105,19 @@ def generate_pdf(text_content, topic=None):
     </html>
     """
 
+    # CSS Styly
     css_style = f"""
     @page {{
         size: A4;
         margin: 2.5cm 2cm 2.5cm 2cm;
         
+        /* VODOTISK – nativní pozadí stránky (vycentrované) */
+        background-image: url("{watermark_uri}");
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: 500px auto;
+        
+        /* Hlavička stránky */
         @top-left {{
             content: "{topic}";
             font-family: 'DejaVu Sans', sans-serif;
@@ -80,6 +126,7 @@ def generate_pdf(text_content, topic=None):
             margin-top: 1cm;
         }}
         
+        /* Patička stránky */
         @bottom-left {{
             content: "arena.buchvald.cz  |  info@buchvald.cz";
             font-family: 'DejaVu Sans', sans-serif;
@@ -94,28 +141,28 @@ def generate_pdf(text_content, topic=None):
         }}
     }}
     
-    /* Titulní strana nemá okraje a má vlastní pozadí */
+    /* Speciální nastavení pro titulní stranu */
     @page :first {{
         margin: 0;
+        background-color: #0a0a0c;
+        background-image: none; /* Vypne vodoznak na titulní straně */
         @top-left {{ content: none; }}
         @bottom-left {{ content: none; }}
         @bottom-right {{ content: none; }}
     }}
 
-    /* --- VODOTISK NA POZADÍ --- */
-    .watermark {{
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 800px;  /* Opravdu velké logo */
-        height: 800px;
-        background-image: url("{logo_data_uri}");
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: contain;
-        opacity: 0.03; /* TADY SE NASTAVUJE NEVIDITELNOST (3%) */
-        z-index: -1000; /* Posune obrázek za veškerý text */
+    body {{
+        font-family: 'DejaVu Sans', sans-serif;
+        font-size: 11pt;
+        line-height: 1.5;
+        color: #2d3748;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }}
+
+    .content {{
+        width: 100%;
+        box-sizing: border-box;
     }}
 
     /* --- TITULNÍ STRANA --- */
@@ -126,9 +173,6 @@ def generate_pdf(text_content, topic=None):
         text-align: center;
         padding-top: 200px;
         box-sizing: border-box;
-        background-color: #0a0a0c; /* Toto překryje vodoznak na první stránce */
-        position: relative;
-        z-index: 10;
     }}
     .cover-logo {{
         width: 280px;
@@ -154,20 +198,6 @@ def generate_pdf(text_content, topic=None):
     }}
 
     /* --- OBSAH --- */
-    body {{
-        font-family: 'DejaVu Sans', sans-serif;
-        font-size: 11pt;
-        line-height: 1.5;
-        color: #2d3748;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-    }}
-
-    .content {{
-        width: 100%;
-        box-sizing: border-box;
-    }}
-
     .content h1 {{
         color: #ff3333;
         font-size: 22pt;
