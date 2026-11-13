@@ -1,4 +1,6 @@
 import streamlit as st
+import json
+import os
 import time
 import re
 from google import genai
@@ -6,12 +8,32 @@ from google.genai import types
 from openai import OpenAI
 from utils.config import TEMPERAMENT_PROMPTS, EXPERTISE_PROMPTS, LENGTH_PROMPTS, RULE_PROMPTS, JUDGE_GOAL_PROMPTS
 
-GEMINI_PREFERRED = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.8-flash"]
-NVIDIA_PREFERRED = ["nvidia/nemotron-3-ultra-550b-a55b"]
-MISTRAL_PREFERRED = ["ministral-3b-2512", "ministral-8b-2512", "codestral-2508", "mistral-large-2512"]
+# 1. Záložní výchozí seznamy (kdyby JSON chyběl nebo byl poškozený)
+DEFAULT_GEMINI = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.8-flash"]
+DEFAULT_MISTRAL = ["ministral-3b-2512", "ministral-8b-2512", "codestral-2508", "mistral-large-2512"]
+DEFAULT_NVIDIA = ["nvidia/nemotron-3-ultra-550b-a55b"]
+
+# 2. Funkce pro načtení konfigurace z externího JSONu
+def load_model_config():
+    config_path = "models.json"
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return (
+                    data.get("gemini", DEFAULT_GEMINI),
+                    data.get("mistral", DEFAULT_MISTRAL),
+                    data.get("nvidia", DEFAULT_NVIDIA)
+                )
+        except Exception as e:
+            st.warning(f"⚠️ Chyba při načítání models.json: {e}. Používám výchozí seznamy.")
+    return DEFAULT_GEMINI, DEFAULT_MISTRAL, DEFAULT_NVIDIA
+
+# 3. Načtení do globálních proměnných
+GEMINI_PREFERRED, MISTRAL_PREFERRED, NVIDIA_PREFERRED = load_model_config()
 
 def _apply_custom_model(model_list, custom_key):
-    """Pomocná funkce pro vložení vlastního modelu z session_state na první místo."""
+    """Vloží vlastní model z postranního panelu na první místo."""
     custom = st.session_state.get(custom_key, "").strip()
     if custom:
         if custom in model_list:
@@ -114,25 +136,18 @@ def call_ai(system_prompt, user_prompt, provider, gemini_client=None, mistral_cl
             temp = 0.7
             for attempt in range(2):
                 try:
-                    # Parametr enable_thinking posíláme POUZE pro Nemotron modely
                     extra = {"chat_template_kwargs": {"enable_thinking": True}} if "nemotron" in model_name.lower() else None
-                    
                     kwargs = {"model": model_name, "messages": messages, "temperature": temp}
-                    if extra:
-                        kwargs["extra_body"] = extra
+                    if extra: kwargs["extra_body"] = extra
                         
                     response = nim_client.chat.completions.create(**kwargs)
                     if response.choices[0].message.content: return response.choices[0].message.content, model_name
                 except Exception as e:
                     error_msg = str(e).lower()
-                    
-                    # Speciální ošetření: Pokud model nepodporuje teplotu 0.7, zkusíme 0.1
                     if "temperature" in error_msg and attempt == 0:
                         temp = 0.1
                         time.sleep(1)
-                        continue # Zkusit znovu s novou teplotou
-                        
-                    # Pokud selhal s extra_body, zkusíme znovu bez něj
+                        continue
                     if extra and attempt == 0:
                         try:
                             kwargs.pop("extra_body", None)
@@ -176,7 +191,6 @@ def call_critique_api(system_prompt, user_prompt, provider, keys):
                     extra = {"chat_template_kwargs": {"enable_thinking": True}} if "nemotron" in model.lower() else None
                     kwargs = {"model": model, "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}], "temperature": temp}
                     if extra: kwargs["extra_body"] = extra
-                    
                     r = client.chat.completions.create(**kwargs)
                     if r.choices[0].message.content: return r.choices[0].message.content, model
                 except Exception as e:
@@ -185,7 +199,6 @@ def call_critique_api(system_prompt, user_prompt, provider, keys):
                         temp = 0.1
                         time.sleep(1)
                         continue
-                        
                     if extra and attempt == 0:
                         try:
                             kwargs.pop("extra_body", None)
