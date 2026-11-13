@@ -10,9 +10,9 @@ from openai import OpenAI
 from utils.config import t
 from utils.state import init_state
 from utils.ai_providers import (
-    get_available_gemini_models, get_available_mistral_models, get_delay_for_provider, 
-    enhance_role_prompt, build_judge_prompt, generate_filename_from_topic, 
-    call_ai, call_critique_api, NVIDIA_PREFERRED
+    get_available_gemini_models, get_available_mistral_models, get_available_nvidia_models,
+    get_delay_for_provider, enhance_role_prompt, build_judge_prompt, 
+    generate_filename_from_topic, call_ai, call_critique_api, NVIDIA_PREFERRED
 )
 from utils.pdf_export import generate_pdf, extract_text_from_file
 from utils.storage import get_next_counter, get_r2_client, save_critique_result, reset_critique_state
@@ -36,7 +36,6 @@ def get_display_name(name, temp_key, exp_key):
         parts.append(t(f"temperament_{temp_key}"))
     if exp_key and exp_key != "undefined":
         parts.append(t(f"expertise_{exp_key}"))
-    
     if not parts:
         return name
     return f"{name} ({', '.join(parts)})"
@@ -166,7 +165,6 @@ def render_summary_ui(available_providers_list):
             if st.button(f"{t('gen_summary_btn')} {selected}", type="primary"):
                 with st.spinner(t("summary_generating")):
                     sys_prompt = t("judge_prompt")
-                    
                     context_text = f"{t('topic')}:\n" + st.session_state.md_content
                     
                     if has_critique:
@@ -179,7 +177,8 @@ def render_summary_ui(available_providers_list):
                             "mistral_client": st.session_state.get("mistral_client"),
                             "nim_client": st.session_state.get("nim_client"),
                             "gemini_models": st.session_state.get("gemini_models"),
-                            "mistral_models": st.session_state.get("mistral_models")
+                            "mistral_models": st.session_state.get("mistral_models"),
+                            "nvidia_models": st.session_state.get("nvidia_models")
                         }
                         
                         summary_text, model_used = call_ai(sys_prompt, context_text, selected, **ai_kwargs)
@@ -189,7 +188,6 @@ def render_summary_ui(available_providers_list):
                             st.success(t("summary_saved"))
                         else:
                             st.warning(f"{t('summary_save_err')} {res}")
-                            
                     except Exception as e:
                         st.error(f"{t('summary_err')} {e}")
 
@@ -249,10 +247,9 @@ def render_summary_ui(available_providers_list):
         st.markdown(f'<div style="display:flex; gap:10px; margin:10px 0;"><a href="data:application/octet-stream;base64,{md_b64}" download="{base}.md" style="flex:1; text-align:center; padding:10px; background:#f0f2f6; color:#31333f; text-decoration:none; border-radius:5px; border:1px solid #d6d6d6;">{t("summary_dl_md")}</a><a href="data:application/pdf;base64,{pdf_b64}" download="{base}.pdf" style="flex:1; text-align:center; padding:10px; background:#ff4b4b; color:white; text-decoration:none; border-radius:5px;">{t("summary_dl_pdf")}</a></div>', unsafe_allow_html=True)
 
 
-# HLAVNÍ TITULEK
+# --- ÚVODNÍ STRÁNKA S VOLBOU ---
 st.title(t("debate_title"))
 
-# --- ÚVODNÍ STRÁNKA S VOLBOU ---
 if not st.session_state.debate_active:
     st.info(t("tip"), icon="💡")
     st.caption(t("debate_caption"))
@@ -282,19 +279,21 @@ gemini_client = genai.Client(api_key=st.session_state.gemini_key.strip(), http_o
 mistral_client = OpenAI(api_key=st.session_state.mistral_key.strip(), base_url="https://api.mistral.ai/v1", timeout=180.0) if "Mistral" in available_providers else None
 nim_client = OpenAI(api_key=st.session_state.nim_key.strip(), base_url="https://integrate.api.nvidia.com/v1", timeout=180.0) if "NVIDIA NIM" in available_providers else None
 
+# Načtení seznamů modelů (aplikuje vlastní model z session_state, pokud je zadán)
 gemini_models = get_available_gemini_models(gemini_client) if gemini_client else []
 mistral_models = get_available_mistral_models(mistral_client) if mistral_client else []
-nvidia_models = NVIDIA_PREFERRED if nim_client else []
+nvidia_models = get_available_nvidia_models(nim_client) if nim_client else []
 
 st.session_state.gemini_client = gemini_client
 st.session_state.mistral_client = mistral_client
 st.session_state.nim_client = nim_client
 st.session_state.gemini_models = gemini_models
 st.session_state.mistral_models = mistral_models
+st.session_state.nvidia_models = nvidia_models
 
 ai_kwargs = {
     "gemini_client": gemini_client, "mistral_client": mistral_client, "nim_client": nim_client,
-    "gemini_models": gemini_models, "mistral_models": mistral_models
+    "gemini_models": gemini_models, "mistral_models": mistral_models, "nvidia_models": nvidia_models
 }
 
 mode = "ai_vs_ai" if is_simple else st.session_state.debate_mode
@@ -414,7 +413,6 @@ if not st.session_state.debate_finished:
                     
                 s3.put_object(Bucket=bucket, Key=md_path, Body=st.session_state.md_content.encode("utf-8"))
                 s3.put_object(Bucket=bucket, Key=pdf_path, Body=st.session_state.pdf_bytes)
-                # Hláška o uložení byla odstraněna
             except Exception as e: 
                 st.error(t("err_r2", err=e))
 
