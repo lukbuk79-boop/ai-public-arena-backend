@@ -95,7 +95,6 @@ def generate_pdf(text_content, topic=None):
         }}
     }}
     
-    /* ZDE JE ZMĚNA: Tmavé pozadí a nulové okraje pro celou první stránku */
     @page :first {{
         margin: 0;
         background-color: #0a0a0c;
@@ -105,11 +104,19 @@ def generate_pdf(text_content, topic=None):
         @bottom-right {{ content: none; }}
     }}
 
+    /* OPRAVA PŘETEČENÍ TEXTU */
     body {{
         font-family: 'DejaVu Sans', sans-serif;
         font-size: 11pt;
         line-height: 1.5;
         color: #2d3748;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }}
+
+    .content {{
+        width: 100%;
+        box-sizing: border-box;
     }}
 
     /* --- TITULNÍ STRANA --- */
@@ -118,13 +125,12 @@ def generate_pdf(text_content, topic=None):
         width: 100%;
         height: 100%;
         text-align: center;
-        padding-top: 200px; /* Posun textu dolů */
+        padding-top: 200px;
         box-sizing: border-box;
     }}
     .cover-logo {{
         width: 280px;
         margin-bottom: 60px;
-        /* Přidá jemný červený svit okolo loga, který splyne s pozadím */
         filter: drop-shadow(0 0 30px rgba(255, 51, 51, 0.5)); 
     }}
     .cover-title {{
@@ -153,22 +159,27 @@ def generate_pdf(text_content, topic=None):
         padding-bottom: 10px;
         margin-top: 30px;
         page-break-after: avoid;
+        word-wrap: break-word;
     }}
     .content h2 {{
         color: #ff3333;
         font-size: 16pt;
         margin-top: 25px;
         page-break-after: avoid;
+        word-wrap: break-word;
     }}
     .content h3 {{
         color: #ff5555;
         font-size: 13pt;
         margin-top: 15px;
         page-break-after: avoid;
+        word-wrap: break-word;
     }}
     .content p {{
         margin-bottom: 10px;
         text-align: justify;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }}
     .content small {{
         color: #718096;
@@ -184,17 +195,21 @@ def generate_pdf(text_content, topic=None):
         margin: 12px 0;
         color: #4a5568;
         font-style: italic;
+        word-wrap: break-word;
     }}
     .content table {{
         width: 100%;
         border-collapse: collapse;
         margin: 15px 0;
         font-size: 10pt;
+        table-layout: fixed;
+        word-wrap: break-word;
     }}
     .content th, .content td {{
         border: 1px solid #e2e8f0;
         padding: 8px 12px;
         text-align: left;
+        word-wrap: break-word;
     }}
     .content th {{
         background-color: #ff3333;
