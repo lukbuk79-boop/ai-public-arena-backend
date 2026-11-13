@@ -111,18 +111,27 @@ def call_ai(system_prompt, user_prompt, provider, gemini_client=None, mistral_cl
         models_to_try = nvidia_models or get_available_nvidia_models(nim_client)
         messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
         for model_name in models_to_try:
+            temp = 0.7
             for attempt in range(2):
                 try:
                     # Parametr enable_thinking posíláme POUZE pro Nemotron modely
                     extra = {"chat_template_kwargs": {"enable_thinking": True}} if "nemotron" in model_name.lower() else None
                     
-                    kwargs = {"model": model_name, "messages": messages, "temperature": 0.7}
+                    kwargs = {"model": model_name, "messages": messages, "temperature": temp}
                     if extra:
                         kwargs["extra_body"] = extra
                         
                     response = nim_client.chat.completions.create(**kwargs)
                     if response.choices[0].message.content: return response.choices[0].message.content, model_name
-                except Exception:
+                except Exception as e:
+                    error_msg = str(e).lower()
+                    
+                    # Speciální ošetření: Pokud model nepodporuje teplotu 0.7, zkusíme 0.1
+                    if "temperature" in error_msg and attempt == 0:
+                        temp = 0.1
+                        time.sleep(1)
+                        continue # Zkusit znovu s novou teplotou
+                        
                     # Pokud selhal s extra_body, zkusíme znovu bez něj
                     if extra and attempt == 0:
                         try:
@@ -161,15 +170,22 @@ def call_critique_api(system_prompt, user_prompt, provider, keys):
     elif provider == "NVIDIA NIM":
         client = OpenAI(api_key=keys["nim"], base_url="https://integrate.api.nvidia.com/v1", timeout=180.0)
         for model in get_available_nvidia_models(client):
+            temp = 0.7
             for attempt in range(2):
                 try:
                     extra = {"chat_template_kwargs": {"enable_thinking": True}} if "nemotron" in model.lower() else None
-                    kwargs = {"model": model, "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}], "temperature": 0.7}
+                    kwargs = {"model": model, "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}], "temperature": temp}
                     if extra: kwargs["extra_body"] = extra
                     
                     r = client.chat.completions.create(**kwargs)
                     if r.choices[0].message.content: return r.choices[0].message.content, model
-                except Exception:
+                except Exception as e:
+                    error_msg = str(e).lower()
+                    if "temperature" in error_msg and attempt == 0:
+                        temp = 0.1
+                        time.sleep(1)
+                        continue
+                        
                     if extra and attempt == 0:
                         try:
                             kwargs.pop("extra_body", None)
