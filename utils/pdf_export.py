@@ -26,27 +26,31 @@ def extract_text_from_file(uploaded_file):
         return ""
 
 def get_watermark_base64():
-    """Vytvoří z loga poloprůhledný vodoznak přímo v paměti (optimalizováno pro RAM)."""
+    """Vytvoří z loga poloprůhledný vodoznak a odstraní případné černé pozadí."""
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         logo_path = os.path.join(current_dir, "..", "ai_arena.png")
         
         if os.path.exists(logo_path):
-            # Otevřít obrázek a převést na RGBA
             img = Image.open(logo_path).convert("RGBA")
             
-            # Zmenšení obrázku na max 600x600 px (šetří RAM a zrychluje WeasyPrint)
-            img.thumbnail((600, 600), Image.Resampling.LANCZOS)
+            # Zmenšení obrázku (šetří RAM, 600px stačí pro 750px vodoznak)
+            img.thumbnail((800, 800), Image.Resampling.LANCZOS)
             
-            # Ztlumení alfa kanálu (průhlednosti) na cca 8 %
             datas = img.getdata()
             new_data = []
             for item in datas:
-                new_data.append((item[0], item[1], item[2], 20))
+                r, g, b, a = item
+                
+                # 1. Pokud je pixel velmi tmavý (černé pozadí), uděláme ho zcela průhledným
+                if r < 15 and g < 15 and b < 15:
+                    new_data.append((r, g, b, 0))
+                else:
+                    # 2. Zbytek loga ztlumíme (zachováme průhlednost, ale snížíme ji na cca 15 %)
+                    new_data.append((r, g, b, int(a * 0.15)))
             
             img.putdata(new_data)
             
-            # Uložit do paměti jako PNG
             buffered = io.BytesIO()
             img.save(buffered, format="PNG")
             return base64.b64encode(buffered.getvalue()).decode("utf-8")
@@ -72,7 +76,6 @@ def generate_pdf(text_content, topic=None):
 
     html_body = markdown.markdown(text_content, extensions=['tables', 'nl2br'])
     
-    # Načtení obrázků do Base64
     logo_b64 = get_logo_base64()
     logo_data_uri = f"data:image/png;base64,{logo_b64}" if logo_b64 else ""
 
@@ -81,7 +84,6 @@ def generate_pdf(text_content, topic=None):
 
     current_date = datetime.now().strftime("%d.%m.%Y")
 
-    # HTML pro titulní stranu
     cover_html = f"""
     <div class="cover-page">
         {'<img src="' + logo_data_uri + '" class="cover-logo" />' if logo_b64 else ''}
@@ -91,7 +93,6 @@ def generate_pdf(text_content, topic=None):
     </div>
     """
 
-    # Kompletní HTML dokument
     full_html = f"""
     <!DOCTYPE html>
     <html lang='cs'>
@@ -105,19 +106,17 @@ def generate_pdf(text_content, topic=None):
     </html>
     """
 
-    # CSS Styly
     css_style = f"""
     @page {{
         size: A4;
         margin: 2.5cm 2cm 2.5cm 2cm;
         
-        /* VODOTISK – nativní pozadí stránky (vycentrované) */
+        /* VODOTISK – nativní pozadí stránky (vycentrované, zvětšeno na 750px) */
         background-image: url("{watermark_uri}");
         background-repeat: no-repeat;
         background-position: center center;
-        background-size: 500px auto;
+        background-size: 750px auto; 
         
-        /* Hlavička stránky */
         @top-left {{
             content: "{topic}";
             font-family: 'DejaVu Sans', sans-serif;
@@ -126,7 +125,6 @@ def generate_pdf(text_content, topic=None):
             margin-top: 1cm;
         }}
         
-        /* Patička stránky */
         @bottom-left {{
             content: "arena.buchvald.cz  |  info@buchvald.cz";
             font-family: 'DejaVu Sans', sans-serif;
@@ -141,11 +139,10 @@ def generate_pdf(text_content, topic=None):
         }}
     }}
     
-    /* Speciální nastavení pro titulní stranu */
     @page :first {{
         margin: 0;
         background-color: #0a0a0c;
-        background-image: none; /* Vypne vodoznak na titulní straně */
+        background-image: none;
         @top-left {{ content: none; }}
         @bottom-left {{ content: none; }}
         @bottom-right {{ content: none; }}
