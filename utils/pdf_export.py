@@ -29,18 +29,17 @@ def generate_pdf(text_content, topic=None):
         html_body = markdown.markdown(text_content, extensions=['tables', 'nl2br'])
         full_html = f"<html><body>{html_body}</body></html>"
         
-        # 2. CSS styl
+        # 2. Minimální CSS (bez obrázků, bez archivů)
         css = """
-        body { font-family: sans-serif; font-size: 11pt; color: #2d3748; }
+        body { font-family: sans-serif; font-size: 11pt; line-height: 1.5; color: #2d3748; }
         h1 { color: #ff3333; font-size: 18pt; margin-top: 20px; }
         h2 { color: #ff3333; font-size: 14pt; margin-top: 15px; }
         h3 { color: #ff5555; font-size: 12pt; margin-top: 10px; }
         p { margin-bottom: 10px; text-align: justify; }
         small { color: #718096; font-style: italic; font-size: 9pt; }
-        blockquote { border-left: 3px solid #ffb300; background-color: #fff8e1; padding: 10px; color: #4a5568; }
+        blockquote { border-left: 3px solid #ffb300; background-color: #fff8e1; padding: 10px; }
         table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
-        th { background-color: #ff3333; color: white; padding: 8px; border: 1px solid #e2e8f0; }
-        td { padding: 8px; border: 1px solid #e2e8f0; }
+        th, td { border: 1px solid #e2e8f0; padding: 8px; }
         """
         
         # 3. Vytvoření dokumentu a Story
@@ -65,8 +64,9 @@ def generate_pdf(text_content, topic=None):
         pdf_bytes = doc.write()
         doc.close()
         
-        if not pdf_bytes or len(pdf_bytes) < 500:
-            st.error("Vygenerované PDF je prázdné.")
+        # 7. Kontrola, že PDF není prázdné
+        if not pdf_bytes or len(pdf_bytes) < 1000:
+            st.error("Vygenerované PDF je prázdné nebo příliš malé.")
             return b""
             
         return pdf_bytes
