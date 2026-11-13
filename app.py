@@ -46,6 +46,27 @@ with st.sidebar:
     st.session_state.mistral_key = st.session_state.saved_mistral
     st.session_state.nim_key = st.session_state.saved_nim
 
+    # --- NOVÝ BLOK PRO VLASTNÍ MODELY ---
+    with st.expander("⚙️ Pokročilé: Vlastní modely"):
+        st.caption("Zadejte přesný název modelu, který chcete preferovat. Pokud necháte prázdné, použije se výchozí seznam.")
+        
+        st.session_state.custom_gemini_model = st.text_input(
+            "Vlastní model Gemini", 
+            value=st.session_state.get("custom_gemini_model", ""), 
+            placeholder="např. gemini-2.5-pro"
+        )
+        st.session_state.custom_mistral_model = st.text_input(
+            "Vlastní model Mistral", 
+            value=st.session_state.get("custom_mistral_model", ""), 
+            placeholder="např. mistral-large-latest"
+        )
+        st.session_state.custom_nvidia_model = st.text_input(
+            "Vlastní model NVIDIA NIM", 
+            value=st.session_state.get("custom_nvidia_model", ""), 
+            placeholder="např. meta/llama-3.1-405b-instruct"
+        )
+    # ------------------------------------
+
     st.caption(t("keys_warning"))
     
     if st.button(t("clear_keys"), use_container_width=True):
