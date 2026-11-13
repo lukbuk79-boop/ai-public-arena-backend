@@ -5,3 +5,4 @@ pypdf
 markdown
 weasyprint
 boto3
+Pillow
