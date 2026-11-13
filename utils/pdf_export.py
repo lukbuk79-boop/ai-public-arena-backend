@@ -69,6 +69,13 @@ def generate_pdf(text_content, topic=None):
     @page {{
         size: A4;
         margin: 2.5cm 2cm 2.5cm 2cm;
+        
+        /* VODOTISK NA POZADÍ */
+        background-image: url("{logo_data_uri}");
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: 350px auto;
+        
         @top-left {{
             content: "{topic}";
             font-family: 'DejaVu Sans', sans-serif;
@@ -76,11 +83,7 @@ def generate_pdf(text_content, topic=None):
             color: #718096;
             margin-top: 1cm;
         }}
-        @top-right {{
-            content: url("{logo_data_uri}");
-            width: 40px;
-            margin-top: 0.5cm;
-        }}
+        
         @bottom-left {{
             content: "arena.buchvald.cz  |  info@buchvald.cz";
             font-family: 'DejaVu Sans', sans-serif;
@@ -95,16 +98,16 @@ def generate_pdf(text_content, topic=None):
         }}
     }}
     
+    /* Úprava pro první stránku (titulní) - vypne vodoznak a okraje */
     @page :first {{
         margin: 0;
         background-color: #0a0a0c;
+        background-image: none; /* Zde vodoznak nechceme */
         @top-left {{ content: none; }}
-        @top-right {{ content: none; }}
         @bottom-left {{ content: none; }}
         @bottom-right {{ content: none; }}
     }}
 
-    /* OPRAVA PŘETEČENÍ TEXTU */
     body {{
         font-family: 'DejaVu Sans', sans-serif;
         font-size: 11pt;
