@@ -35,6 +35,27 @@ def get_display_name(name, temp_key, exp_key):
     if not parts: return name
     return f"{name} ({', '.join(parts)})"
 
+def get_personas_md(name_a, name_b, name_c, mode, is_simple):
+    """Vytvoří Markdown blok s definicemi diskutujících."""
+    md = "## Definice diskutujících\n\n"
+    if st.session_state.get("role_a_prompt"):
+        md += f"**{name_a}**\n- {st.session_state.role_a_prompt}\n\n"
+        
+    if mode in ["ai_vs_ai", "ai_vs_ai_vs_ai", "ai_vs_ai_vs_human"]:
+        if st.session_state.get("role_b_prompt"):
+            md += f"**{name_b}**\n- {st.session_state.role_b_prompt}\n\n"
+    elif mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
+        md += f"**{st.session_state.role_b_name}**\n- Člověk\n\n"
+            
+    if not is_simple and mode == "ai_vs_ai_vs_ai":
+        if st.session_state.get("role_c_prompt"):
+            md += f"**{name_c}**\n- {st.session_state.role_c_prompt}\n\n"
+    elif not is_simple and mode == "ai_vs_ai_vs_human":
+        md += f"**{st.session_state.role_c_name}**\n- Člověk\n\n"
+        
+    md += "---\n\n"
+    return md
+
 def render_downloads():
     base_name = st.session_state.get("file_base_name", "debata")
     col1, col2 = st.columns(2)
@@ -255,13 +276,11 @@ if not st.session_state.debate_active:
     import os
     import base64
 
-    # 1. Zjistíme přesnou cestu k logu (o úroveň výš z app_pages)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.dirname(current_dir)
     logo_path = os.path.join(root_dir, "ai_arena.png")
 
     logo_b64 = ""
-    # 2. Zkusíme obrázek načíst a převést na Base64
     if os.path.exists(logo_path):
         with open(logo_path, "rb") as f:
             logo_b64 = base64.b64encode(f.read()).decode("utf-8")
@@ -270,7 +289,6 @@ if not st.session_state.debate_active:
 
     clean_title = t("debate_title").replace("🗣️", "").strip()
     
-    # 3. Vykreslení loga a nadpisu vedle sebe
     if logo_b64:
         st.markdown(
             f'<div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 20px; margin-bottom: 40px;">'
@@ -280,24 +298,21 @@ if not st.session_state.debate_active:
             unsafe_allow_html=True
         )
     else:
-        # Záloha, pokud se obrázek nenačte (zobrazí alespoň text)
         st.markdown(
             f'<h1 style="text-align: center; color: #ff3333; font-weight: 900; letter-spacing: 2px; margin-top: 20px; margin-bottom: 40px;">{clean_title}</h1>',
             unsafe_allow_html=True
         )
 
-    # 4. Zbytek úvodní stránky
     st.info(t("tip"), icon="💡")
     st.caption(t("debate_caption"))
     st.divider()
     
-    # OPRAVENÁ FUNKCE PRO RESET A START
     def reset_and_start(debate_type):
         st.session_state.debate_type = debate_type
-        st.session_state.setup_step = 1  # Vynutíme začátek od Kroku 1
+        st.session_state.setup_step = 1
         for k in list(st.session_state.keys()):
             if k.startswith("w_"): 
-                del st.session_state[k]  # Smažeme stará data z formuláře
+                del st.session_state[k]
         st.switch_page("app_pages/setup.py")
 
     col1, col2 = st.columns(2)
@@ -344,9 +359,11 @@ lang = st.session_state.lang
 if is_simple:
     name_a_display = st.session_state.role_a_name
     name_b_display = st.session_state.role_b_name
+    name_c_display = ""
 else:
     name_a_display = get_display_name(st.session_state.role_a_name, st.session_state.temperament_a, st.session_state.expertise_a)
     name_b_display = get_display_name(st.session_state.role_b_name, st.session_state.temperament_b, st.session_state.expertise_b)
+    name_c_display = get_display_name(st.session_state.role_c_name, st.session_state.temperament_c, st.session_state.expertise_c)
 
 prompt_a = enhance_role_prompt(st.session_state.role_a_prompt, st.session_state.temperament_a, st.session_state.expertise_a, st.session_state.response_length, st.session_state.debate_rules, lang)
 participants.append({"name": name_a_display, "type": "ai", "provider": st.session_state.provider_a, "prompt": prompt_a, "avatar": "🔵"})
@@ -361,12 +378,16 @@ if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and n
     if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
         participants.append({"name": st.session_state.role_c_name, "type": "human", "avatar": "🧑‍💻"})
     else:
-        name_c_display = get_display_name(st.session_state.role_c_name, st.session_state.temperament_c, st.session_state.expertise_c)
         prompt_c = enhance_role_prompt(st.session_state.role_c_prompt, st.session_state.temperament_c, st.session_state.expertise_c, st.session_state.response_length, st.session_state.debate_rules, lang)
         participants.append({"name": name_c_display, "type": "ai", "provider": st.session_state.provider_c, "prompt": prompt_c, "avatar": "🟢"})
 
 st.markdown(f"### 📌 {t('topic')}: *{st.session_state.current_topic}*")
 if st.session_state.get("topic_summary"): st.info(st.session_state.topic_summary)
+
+# Zobrazení definic v UI (rozbalovací menu)
+personas_md = get_personas_md(name_a_display, name_b_display, name_c_display, mode, is_simple)
+with st.expander("👤 Definice diskutujících (s čím do diskuze šli)", expanded=False):
+    st.markdown(personas_md.replace("## Definice diskutujících", ""))
 
 for i, (sender, text, model) in enumerate(st.session_state.full_history):
     is_human = model == "Human"
@@ -400,7 +421,14 @@ if not st.session_state.debate_finished:
     if st.session_state.current_round >= st.session_state.max_rounds:
         st.session_state.debate_finished = True
         time.sleep(get_delay_for_provider(st.session_state.provider_mod))
-        summary_context = f"{t('topic')}: '{st.session_state.current_topic}'\n\nPRŮBĚH DEBATY:\n" + "\n".join([f"{s}: {txt}" for s, txt, m in st.session_state.full_history])
+        
+        # Přidání definic do kontextu pro rozhodčího
+        personas_block_context = "DEFINICE DISKUTUJÍCÍCH:\n"
+        if st.session_state.role_a_prompt: personas_block_context += f"{name_a_display}: {st.session_state.role_a_prompt}\n"
+        if mode in ["ai_vs_ai", "ai_vs_ai_vs_ai", "ai_vs_ai_vs_human"] and st.session_state.role_b_prompt: personas_block_context += f"{name_b_display}: {st.session_state.role_b_prompt}\n"
+        if not is_simple and mode == "ai_vs_ai_vs_ai" and st.session_state.role_c_prompt: personas_block_context += f"{name_c_display}: {st.session_state.role_c_prompt}\n"
+
+        summary_context = f"{t('topic')}: '{st.session_state.current_topic}'\n\n{personas_block_context}\nPRŮBĚH DEBATY:\n" + "\n".join([f"{s}: {txt}" for s, txt, m in st.session_state.full_history])
         base_judge_prompt = "Jsi přísný a nestranný rozhodčí. Zhodnoť průběh debaty." if st.session_state.lang == "cs" else "You are a strict and impartial judge. Evaluate the debate."
         judge_prompt = build_judge_prompt(base_judge_prompt, st.session_state.debate_goal, lang)
         with st.spinner(t("thinking")):
@@ -414,8 +442,11 @@ if not st.session_state.debate_finished:
             st.markdown(f"**{t('judge')}:**"); st.markdown(final_sum); st.caption(f"🤖 `{mod_mod}`")
         with st.spinner(t("thinking")):
             md_history = "".join([f"### {s}\n{txt}\n\n<small>Model: {m}</small>\n\n---\n\n" for s, txt, m in st.session_state.full_history])
-            st.session_state.md_content = f"# {t('topic')}: {st.session_state.current_topic}\n\n" + md_history + f"### {t('judge')}\n{final_sum}"
+            
+            # Přidání definic do výsledného Markdownu/PDF
+            st.session_state.md_content = f"# {t('topic')}: {st.session_state.current_topic}\n\n" + personas_md + md_history + f"### {t('judge')}\n{final_sum}"
             st.session_state.pdf_bytes = generate_pdf(st.session_state.md_content)
+            
             try: counter = get_next_counter()
             except: counter = "00000"
             st.session_state.file_counter = counter
