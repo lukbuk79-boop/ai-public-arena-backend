@@ -291,13 +291,22 @@ if not st.session_state.debate_active:
     st.caption(t("debate_caption"))
     st.divider()
     
-    col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2)
+    
+    def reset_and_start(debate_type):
+        st.session_state.debate_type = debate_type
+        st.session_state.setup_step = 1  # Vynutíme začátek od Kroku 1
+        # Smažeme dočasná data z předchozího nastavení (klíče začínající na "w_")
+        for k in list(st.session_state.keys()):
+            if k.startswith("w_"): del st.session_state[k]
+        st.switch_page("app_pages/setup.py")
+
     with col1:
         if st.button(t("simple_debate"), type="primary", use_container_width=True):
-            st.session_state.debate_type = "simple"; st.switch_page("app_pages/setup.py")
+            reset_and_start("simple")
     with col2:
         if st.button(t("advanced_debate"), use_container_width=True):
-            st.session_state.debate_type = "advanced"; st.switch_page("app_pages/setup.py")
+            reset_and_start("advanced")
     st.stop()
     col1, col2 = st.columns(2)
     with col1:
