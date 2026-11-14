@@ -275,8 +275,9 @@ if not st.session_state.debate_active:
             except Exception:
                 st.warning("Logo 'ai_arena.png' nebylo nalezeno.")
 
-    # 3. Přidáme nadpis pod logo
-    st.markdown(f"<h1 style='text-align: center; color: #ff3333; font-weight: 900; letter-spacing: 2px; margin-bottom: 40px;'>{t('debate_title')}</h1>", unsafe_allow_html=True)
+        # 3. Přidáme nadpis pod logo (bez emoji panáčka)
+    clean_title = t("debate_title").replace("🗣️", "").strip()
+    st.markdown(f"<h1 style='text-align: center; color: #ff3333; font-weight: 900; letter-spacing: 2px; margin-bottom: 40px;'>{clean_title}</h1>", unsafe_allow_html=True)
 
     # 4. Zbytek úvodní stránky
     st.info(t("tip"), icon="💡")
