@@ -4,6 +4,7 @@ import streamlit as st
 from datetime import datetime
 from utils.pdf_export import generate_pdf
 import json
+import concurrent.futures
 
 @st.cache_resource
 def get_r2_client():
@@ -28,9 +29,8 @@ def get_next_counter():
     s3.put_object(Bucket=bucket, Key="counter.txt", Body=str(next_val).encode("utf-8"))
     return f"{next_val:05d}"
 
-# --- NOVÁ FUNKCE PRO ANALYTIKU ---
 def log_debate_event(event_type, data):
-    """Uloží jednoduchý analytický záznam do R2 (do složky analytics/)."""
+    """Uloží záznam do denního souboru. Agregace probíhá až v dashboardu."""
     try:
         s3 = get_r2_client()
         bucket = st.secrets["R2_BUCKET_NAME"]
@@ -41,24 +41,87 @@ def log_debate_event(event_type, data):
             **data
         }
         
-        # Ukládáme do souboru pojmenovaného podle dne (např. debates_2026-11-14.jsonl)
         date_str = datetime.now().strftime("%Y-%m-%d")
-        key = f"analytics/debates_{date_str}.jsonl"
+        key = f"analytics/daily/debates_{date_str}.jsonl"
         
-        # Zkusíme načíst existující soubor pro daný den
         try:
             existing = s3.get_object(Bucket=bucket, Key=key)["Body"].read().decode("utf-8")
         except Exception:
             existing = ""
-            
-        # Přidáme nový řádek a uložíme
+        
         new_content = existing + json.dumps(log_entry, ensure_ascii=False) + "\n"
         s3.put_object(Bucket=bucket, Key=key, Body=new_content.encode("utf-8"))
     except Exception as e:
-        # Analytika nesmí nikdy shodit aplikaci
         print(f"Chyba při ukládání analytiky: {e}")
         pass
-# --------------------------------
+
+@st.cache_data(ttl=300, show_spinner=False)
+def rebuild_totals_from_files():
+    """Stáhne všechny denní soubory z R2 a vytvoří agregované statistiky."""
+    s3 = get_r2_client()
+    bucket = st.secrets["R2_BUCKET_NAME"]
+    
+    # 1. Získáme seznam všech denních souborů
+    paginator = s3.get_paginator('list_objects_v2')
+    all_keys = []
+    try:
+        for page in paginator.paginate(Bucket=bucket, Prefix="analytics/daily/"):
+            for obj in page.get("Contents", []):
+                if obj["Key"].endswith(".jsonl"):
+                    all_keys.append(obj["Key"])
+    except Exception:
+        return None
+    
+    if not all_keys:
+        return None
+    
+    # 2. Stáhneme všechny soubory paralelně
+    def fetch(key):
+        try:
+            return s3.get_object(Bucket=bucket, Key=key)["Body"].read().decode("utf-8")
+        except Exception:
+            return ""
+    
+    contents = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        contents = list(executor.map(fetch, all_keys))
+    
+    # 3. Agregujeme data
+    agg = {
+        "total_debates": 0,
+        "total_duration_sec": 0,
+        "by_mode": {},
+        "by_lang": {},
+        "by_provider": {},
+        "by_date": {}
+    }
+    
+    for content in contents:
+        for line in content.strip().split("\n"):
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except Exception:
+                continue
+            
+            if entry.get("event") == "debate_completed":
+                agg["total_debates"] += 1
+                agg["total_duration_sec"] += entry.get("duration_sec", 0)
+                
+                mode = entry.get("mode", "unknown")
+                agg["by_mode"][mode] = agg["by_mode"].get(mode, 0) + 1
+                
+                lang = entry.get("lang", "unknown")
+                agg["by_lang"][lang] = agg["by_lang"].get(lang, 0) + 1
+                
+                for p in entry.get("providers", []):
+                    agg["by_provider"][p] = agg["by_provider"].get(p, 0) + 1
+                
+                date_str = entry.get("timestamp", "")[:10]
+                agg["by_date"][date_str] = agg["by_date"].get(date_str, 0) + 1
+    
+    return agg
 
 def generate_critique_md(critique_text, model_used, topic):
     ts = datetime.now().strftime('%d.%m.%Y %H:%M')
