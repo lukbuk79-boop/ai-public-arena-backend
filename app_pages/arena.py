@@ -36,8 +36,12 @@ def get_display_name(name, temp_key, exp_key):
     return f"{name} ({', '.join(parts)})"
 
 def get_personas_md(name_a, name_b, name_c, mode, is_simple):
-    """Vytvoří Markdown blok s definicemi diskutujících."""
-    md = "## Definice diskutujících\n\n"
+    """Vytvoří Markdown blok s definicemi diskutujících (s podporou EN/CZ)."""
+    lang = st.session_state.lang
+    header = "## Definice diskutujících\n\n" if lang == "cs" else "## Debater Definitions\n\n"
+    human_label = "- Člověk" if lang == "cs" else "- Human"
+    
+    md = header
     if st.session_state.get("role_a_prompt"):
         md += f"**{name_a}**\n- {st.session_state.role_a_prompt}\n\n"
         
@@ -45,13 +49,13 @@ def get_personas_md(name_a, name_b, name_c, mode, is_simple):
         if st.session_state.get("role_b_prompt"):
             md += f"**{name_b}**\n- {st.session_state.role_b_prompt}\n\n"
     elif mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
-        md += f"**{st.session_state.role_b_name}**\n- Člověk\n\n"
+        md += f"**{st.session_state.role_b_name}**\n{human_label}\n\n"
             
     if not is_simple and mode == "ai_vs_ai_vs_ai":
         if st.session_state.get("role_c_prompt"):
             md += f"**{name_c}**\n- {st.session_state.role_c_prompt}\n\n"
     elif not is_simple and mode == "ai_vs_ai_vs_human":
-        md += f"**{st.session_state.role_c_name}**\n- Člověk\n\n"
+        md += f"**{st.session_state.role_c_name}**\n{human_label}\n\n"
         
     md += "---\n\n"
     return md
@@ -384,10 +388,11 @@ if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and n
 st.markdown(f"### 📌 {t('topic')}: *{st.session_state.current_topic}*")
 if st.session_state.get("topic_summary"): st.info(st.session_state.topic_summary)
 
-# Zobrazení definic v UI (rozbalovací menu)
+# Zobrazení definic v UI (s podporou překladu)
 personas_md = get_personas_md(name_a_display, name_b_display, name_c_display, mode, is_simple)
-with st.expander("👤 Definice diskutujících (s čím do diskuze šli)", expanded=False):
-    st.markdown(personas_md.replace("## Definice diskutujících", ""))
+expander_title = "👤 Definice diskutujících (s čím do diskuze šli)" if lang == "cs" else "👤 Debater Definitions (their starting points)"
+with st.expander(expander_title, expanded=False):
+    st.markdown(personas_md.replace("## Definice diskutujících\n\n", "").replace("## Debater Definitions\n\n", ""))
 
 for i, (sender, text, model) in enumerate(st.session_state.full_history):
     is_human = model == "Human"
@@ -422,8 +427,9 @@ if not st.session_state.debate_finished:
         st.session_state.debate_finished = True
         time.sleep(get_delay_for_provider(st.session_state.provider_mod))
         
-        # Přidání definic do kontextu pro rozhodčího
-        personas_block_context = "DEFINICE DISKUTUJÍCÍCH:\n"
+        # Kontext pro rozhodčího s definicemi
+        personas_header = "DEFINICE DISKUTUJÍCÍCH:\n" if lang == "cs" else "DEBATER DEFINITIONS:\n"
+        personas_block_context = personas_header
         if st.session_state.role_a_prompt: personas_block_context += f"{name_a_display}: {st.session_state.role_a_prompt}\n"
         if mode in ["ai_vs_ai", "ai_vs_ai_vs_ai", "ai_vs_ai_vs_human"] and st.session_state.role_b_prompt: personas_block_context += f"{name_b_display}: {st.session_state.role_b_prompt}\n"
         if not is_simple and mode == "ai_vs_ai_vs_ai" and st.session_state.role_c_prompt: personas_block_context += f"{name_c_display}: {st.session_state.role_c_prompt}\n"
@@ -443,7 +449,7 @@ if not st.session_state.debate_finished:
         with st.spinner(t("thinking")):
             md_history = "".join([f"### {s}\n{txt}\n\n<small>Model: {m}</small>\n\n---\n\n" for s, txt, m in st.session_state.full_history])
             
-            # Přidání definic do výsledného Markdownu/PDF
+            # Zápis do Markdownu (s definicemi)
             st.session_state.md_content = f"# {t('topic')}: {st.session_state.current_topic}\n\n" + personas_md + md_history + f"### {t('judge')}\n{final_sum}"
             st.session_state.pdf_bytes = generate_pdf(st.session_state.md_content)
             
