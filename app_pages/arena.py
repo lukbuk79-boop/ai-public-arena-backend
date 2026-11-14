@@ -252,44 +252,46 @@ def render_summary_ui(available_providers_list):
 # --- ÚVODNÍ STRÁNKA ---
 if not st.session_state.debate_active:
     
-    # 1. Přidáme CSS styl pro červený "glow" efekt okolo loga
-    st.markdown("""
-    <style>
-    [data-testid="stImage"] img {
-        filter: drop-shadow(0 0 25px rgba(255, 51, 51, 0.6));
-        margin-bottom: 20px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # 1. Načtení loga do Base64
+    import os
+    logo_b64 = ""
+    try:
+        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ai_arena.png")
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as f:
+                logo_b64 = base64.b64encode(f.read()).decode("utf-8")
+    except Exception:
+        pass
 
-        # 2. Zobrazíme logo vycentrované pomocí sloupců
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        try:
-            # Zkusíme načíst logo z kořene repozitáře. 
-            # Změnou čísla u width= změníte velikost (např. 150, 200, 250).
-            st.image("ai_arena.png", width=150)
-        except Exception:
-            # Pokud by cesta selhala (např. kvůli struktuře složek), zkusíme o úroveň výš
-            try:
-                st.image("../ai_arena.png", width=220)
-            except Exception:
-                st.warning("Logo 'ai_arena.png' nebylo nalezeno.")
-
-        # 3. Přidáme nadpis pod logo (bez emoji panáčka)
+    # 2. Společné vycentrované zobrazení loga a textu vedle sebe
     clean_title = t("debate_title").replace("🗣️", "").strip()
-    st.markdown(f"<h1 style='text-align: center; color: #ff3333; font-weight: 900; letter-spacing: 2px; margin-bottom: 40px;'>{clean_title}</h1>", unsafe_allow_html=True)
+    
+    if logo_b64:
+        # Pomocí Flexboxu zarovnáme obrázek a text doprostřed
+        st.markdown(
+            f'<div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 30px; margin-bottom: 40px;">'
+            f'<img src="data:image/png;base64,{logo_b64}" style="height: 110px; filter: drop-shadow(0 0 15px rgba(255, 51, 51, 0.5));">'
+            f'<h1 style="color: #ff3333; font-weight: 900; letter-spacing: 2px; margin: 0;">{clean_title}</h1>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        # Záloha, kdyby se logo nenačetlo
+        st.markdown(
+            f'<h1 style="text-align: center; color: #ff3333; font-weight: 900; letter-spacing: 2px; margin-top: 30px; margin-bottom: 40px;">{clean_title}</h1>',
+            unsafe_allow_html=True
+        )
 
-    # 4. Zbytek úvodní stránky
+    # 3. Zbytek úvodní stránky
     st.info(t("tip"), icon="💡")
     st.caption(t("debate_caption"))
     st.divider()
     
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
+    col1, col2 = st.columns(2)
+    with col1:
         if st.button(t("simple_debate"), type="primary", use_container_width=True):
             st.session_state.debate_type = "simple"; st.switch_page("app_pages/setup.py")
-    with col_btn2:
+    with col2:
         if st.button(t("advanced_debate"), use_container_width=True):
             st.session_state.debate_type = "advanced"; st.switch_page("app_pages/setup.py")
     st.stop()
