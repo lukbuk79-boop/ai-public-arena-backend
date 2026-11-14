@@ -376,4 +376,144 @@ prompt_a = enhance_role_prompt(st.session_state.role_a_prompt, st.session_state.
 participants.append({"name": name_a_display, "type": "ai", "provider": st.session_state.provider_a, "prompt": prompt_a, "avatar": "🔵"})
 
 if mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
-    participants.append({"name": st.session_
+    participants.append({"name": st.session_state.role_b_name, "type": "human", "avatar": "🧑‍💻"})
+else:
+    prompt_b = enhance_role_prompt(st.session_state.role_b_prompt, st.session_state.temperament_b, st.session_state.expertise_b, st.session_state.response_length, st.session_state.debate_rules, lang)
+    participants.append({"name": name_b_display, "type": "ai", "provider": st.session_state.provider_b, "prompt": prompt_b, "avatar": "🔴"})
+
+if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and not is_simple:
+    if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
+        participants.append({"name": st.session_state.role_c_name, "type": "human", "avatar": "🧑‍💻"})
+    else:
+        prompt_c = enhance_role_prompt(st.session_state.role_c_prompt, st.session_state.temperament_c, st.session_state.expertise_c, st.session_state.response_length, st.session_state.debate_rules, lang)
+        participants.append({"name": name_c_display, "type": "ai", "provider": st.session_state.provider_c, "prompt": prompt_c, "avatar": "🟢"})
+
+st.markdown(f"### 📌 {t('topic')}: *{st.session_state.current_topic}*")
+if st.session_state.get("topic_summary"): st.info(st.session_state.topic_summary)
+
+personas_md = get_personas_md(name_a_display, name_b_display, name_c_display, mode, is_simple)
+expander_title = "👤 Definice diskutujících (s čím do diskuze šli)" if lang == "cs" else "👤 Debater Definitions (their starting points)"
+with st.expander(expander_title, expanded=False):
+    st.markdown(personas_md.replace("## Definice diskutujících\n\n", "").replace("## Debater Definitions\n\n", ""))
+
+if "debate_start_time" not in st.session_state:
+    st.session_state.debate_start_time = time.time()
+
+for i, (sender, text, model) in enumerate(st.session_state.full_history):
+    is_human = model == "Human"
+    avatar = next((p["avatar"] for p in participants if p["name"] == sender), "🔵")
+    with st.chat_message("user" if is_human else "assistant", avatar=avatar):
+        st.markdown(f"**{sender}:**\n\n{text}")
+        if not is_human: st.caption(f"🤖 `{model}`")
+
+if not st.session_state.debate_finished:
+    while st.session_state.current_round < st.session_state.max_rounds:
+        current_speaker = participants[st.session_state.turn_index]
+        if current_speaker["type"] == "human": break
+        with st.spinner(f"{current_speaker['name']} {t('thinking')}"):
+            time.sleep(get_delay_for_provider(current_speaker["provider"]))
+            context = f"{t('topic')}: '{st.session_state.current_topic}'.\n\nContext:\n"
+            context += "\n".join([f"{s}: {txt}" for s, txt, m in st.session_state.full_history[-st.session_state.memory_limit:]])
+            context += f"\nNyní jsi na řadě ty ({current_speaker['name']}). Reaguj na argumenty ostatních." if st.session_state.lang == "cs" else f"\nIt is your turn now ({current_speaker['name']}). Respond to the arguments of others."
+            try:
+                resp, mod = call_ai(current_speaker["prompt"], context, current_speaker["provider"], **ai_kwargs)
+            except Exception as e:
+                resp, mod = f"{t('err_api')} {e}", "Error"
+            st.session_state.full_history.append((current_speaker["name"], resp, mod))
+            with st.chat_message("assistant", avatar=current_speaker["avatar"]):
+                st.markdown(f"**{current_speaker['name']}:**\n\n{resp}")
+                st.caption(f"🤖 `{mod}`")
+        st.session_state.turn_index += 1
+        if st.session_state.turn_index >= len(participants):
+            st.session_state.turn_index = 0
+            st.session_state.current_round += 1
+
+    if st.session_state.current_round >= st.session_state.max_rounds:
+        st.session_state.debate_finished = True
+        
+        duration = 0
+        if "debate_start_time" in st.session_state:
+            duration = int(time.time() - st.session_state.debate_start_time)
+            
+        log_debate_event("debate_completed", {
+            "topic": st.session_state.current_topic,
+            "mode": mode,
+            "is_simple": is_simple,
+            "duration_sec": duration,
+            "rounds": st.session_state.max_rounds,
+            "lang": st.session_state.lang,
+            "providers": [st.session_state.provider_a, st.session_state.provider_b, st.session_state.provider_mod]
+        })
+
+        time.sleep(get_delay_for_provider(st.session_state.provider_mod))
+        
+        personas_header = "DEFINICE DISKUTUJÍCÍCH:\n" if lang == "cs" else "DEBATER DEFINITIONS:\n"
+        personas_block_context = personas_header
+        if st.session_state.role_a_prompt: personas_block_context += f"{name_a_display}: {st.session_state.role_a_prompt}\n"
+        if mode in ["ai_vs_ai", "ai_vs_ai_vs_ai", "ai_vs_ai_vs_human"] and st.session_state.role_b_prompt: personas_block_context += f"{name_b_display}: {st.session_state.role_b_prompt}\n"
+        if not is_simple and mode == "ai_vs_ai_vs_ai" and st.session_state.role_c_prompt: personas_block_context += f"{name_c_display}: {st.session_state.role_c_prompt}\n"
+
+        summary_context = f"{t('topic')}: '{st.session_state.current_topic}'\n\n{personas_block_context}\nPRŮBĚH DEBATY:\n" + "\n".join([f"{s}: {txt}" for s, txt, m in st.session_state.full_history])
+        base_judge_prompt = "Jsi přísný a nestranný rozhodčí. Zhodnoť průběh debaty." if st.session_state.lang == "cs" else "You are a strict and impartial judge. Evaluate the debate."
+        judge_prompt = build_judge_prompt(base_judge_prompt, st.session_state.debate_goal, lang)
+        with st.spinner(t("thinking")):
+            try:
+                final_sum, mod_mod = call_ai(judge_prompt, summary_context, st.session_state.provider_mod, **ai_kwargs)
+            except Exception as e:
+                final_sum = f"{t('err_api')} {e}"; mod_mod = "API Error"
+        st.session_state.final_summary = final_sum
+        st.session_state.model_mod_used = mod_mod
+        with st.chat_message("assistant", avatar="⚖️"):
+            st.markdown(f"**{t('judge')}:**"); st.markdown(final_sum); st.caption(f"🤖 `{mod_mod}`")
+        with st.spinner(t("thinking")):
+            md_history = "".join([f"### {s}\n{txt}\n\n<small>Model: {m}</small>\n\n---\n\n" for s, txt, m in st.session_state.full_history])
+            
+            st.session_state.md_content = f"# {t('topic')}: {st.session_state.current_topic}\n\n" + personas_md + md_history + f"### {t('judge')}\n{final_sum}"
+            st.session_state.pdf_bytes = generate_pdf(st.session_state.md_content)
+            
+            try: counter = get_next_counter()
+            except: counter = "00000"
+            st.session_state.file_counter = counter
+            filename_base = generate_filename_from_topic(st.session_state.current_topic, call_ai, available_providers, **ai_kwargs)
+            full_base = f"{counter}_{filename_base}"
+            st.session_state.file_base_name = full_base
+            try:
+                s3 = get_r2_client(); bucket = st.secrets["R2_BUCKET_NAME"]
+                if is_simple:
+                    md_path = f"simply_discussion/markdown/{full_base}.md"; pdf_path = f"simply_discussion/pdf/{full_base}.pdf"
+                else:
+                    md_path = f"advanced_discussion/markdown/{full_base}.md"; pdf_path = f"advanced_discussion/pdf/{full_base}.pdf"
+                s3.put_object(Bucket=bucket, Key=md_path, Body=st.session_state.md_content.encode("utf-8"))
+                s3.put_object(Bucket=bucket, Key=pdf_path, Body=st.session_state.pdf_bytes)
+                
+                # NOVÉ: Invalidace cache pro dashboard, aby se hned ukázala nová debata
+                rebuild_totals_from_files.clear()
+                
+            except Exception as e: st.error(t("err_r2", err=e))
+        st.rerun()
+
+    else:
+        current_speaker = participants[st.session_state.turn_index]
+        prompt_text = f"{current_speaker['name']}, {t('human_turn_waiting')}"
+        human_input = st.chat_input(prompt_text)
+        if human_input:
+            st.session_state.full_history.append((current_speaker["name"], human_input, "Human"))
+            st.session_state.turn_index += 1
+            if st.session_state.turn_index >= len(participants):
+                st.session_state.turn_index = 0; st.session_state.current_round += 1
+            st.rerun()
+
+else:
+    with st.chat_message("assistant", avatar="⚖️"):
+        st.markdown(f"**{t('judge')}:**\n\n{st.session_state.final_summary}"); st.caption(f"🤖 `{st.session_state.model_mod_used}`")
+    st.divider(); render_downloads()
+    if not is_simple:
+        render_critique_ui(available_providers)
+        render_summary_ui(available_providers)
+    st.divider()
+
+if st.session_state.debate_finished:
+    if st.button(t("new_debate"), use_container_width=True):
+        st.session_state.debate_active = False; st.session_state.debate_finished = False
+        st.session_state.full_history = []; st.session_state.summary_md = ""
+        reset_critique_state(); st.rerun()
