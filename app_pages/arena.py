@@ -252,37 +252,41 @@ def render_summary_ui(available_providers_list):
 # --- ÚVODNÍ STRÁNKA ---
 if not st.session_state.debate_active:
     
-    # 1. Načtení loga do Base64
     import os
-    logo_b64 = ""
-    try:
-        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ai_arena.png")
-        if os.path.exists(logo_path):
-            with open(logo_path, "rb") as f:
-                logo_b64 = base64.b64encode(f.read()).decode("utf-8")
-    except Exception:
-        pass
+    import base64
 
-    # 2. Společné vycentrované zobrazení loga a textu vedle sebe
+    # 1. Zjistíme přesnou cestu k logu (o úroveň výš z app_pages)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.dirname(current_dir)
+    logo_path = os.path.join(root_dir, "ai_arena.png")
+
+    logo_b64 = ""
+    # 2. Zkusíme obrázek načíst a převést na Base64
+    if os.path.exists(logo_path):
+        with open(logo_path, "rb") as f:
+            logo_b64 = base64.b64encode(f.read()).decode("utf-8")
+    else:
+        st.error(f"⚠️ Soubor s logem nebyl nalezen! Očekávaná cesta: {logo_path}")
+
     clean_title = t("debate_title").replace("🗣️", "").strip()
     
+    # 3. Vykreslení loga a nadpisu vedle sebe
     if logo_b64:
-        # Pomocí Flexboxu zarovnáme obrázek a text doprostřed
         st.markdown(
-            f'<div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 30px; margin-bottom: 40px;">'
+            f'<div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 20px; margin-bottom: 40px;">'
             f'<img src="data:image/png;base64,{logo_b64}" style="height: 110px; filter: drop-shadow(0 0 15px rgba(255, 51, 51, 0.5));">'
             f'<h1 style="color: #ff3333; font-weight: 900; letter-spacing: 2px; margin: 0;">{clean_title}</h1>'
             f'</div>',
             unsafe_allow_html=True
         )
     else:
-        # Záloha, kdyby se logo nenačetlo
+        # Záloha, pokud se obrázek nenačte (zobrazí alespoň text)
         st.markdown(
-            f'<h1 style="text-align: center; color: #ff3333; font-weight: 900; letter-spacing: 2px; margin-top: 30px; margin-bottom: 40px;">{clean_title}</h1>',
+            f'<h1 style="text-align: center; color: #ff3333; font-weight: 900; letter-spacing: 2px; margin-top: 20px; margin-bottom: 40px;">{clean_title}</h1>',
             unsafe_allow_html=True
         )
 
-    # 3. Zbytek úvodní stránky
+    # 4. Zbytek úvodní stránky
     st.info(t("tip"), icon="💡")
     st.caption(t("debate_caption"))
     st.divider()
