@@ -80,9 +80,12 @@ if st.session_state.setup_step == 1 and not is_simple:
     st.radio(t("mode_label"), options=MODE_KEYS, format_func=lambda k: t(f"mode_{k}"), key="w_mode", on_change=update_state, args=("w_mode", "debate_mode"))
     st.divider()
     st.selectbox(t("preset_label"), options=PRESET_KEYS, format_func=lambda k: t(f"preset_{k}"), key="w_preset", on_change=apply_preset_callback, help=t("preset_help"))
-    st.selectbox(t("response_length_label"), options=LENGTH_KEYS, format_func=lambda k: t(f"length_{k}"), key="w_length", on_change=update_state, args=("w_length", "response_length"))
-    st.radio(t("debate_goal_label"), options=GOAL_KEYS, format_func=lambda k: t(f"goal_{k}"), key="w_goal", on_change=update_state, args=("w_goal", "debate_goal"))
-    st.multiselect(t("rules_label"), options=RULE_KEYS, format_func=lambda k: t(f"rule_{k}"), key="w_rules", on_change=update_state, args=("w_rules", "debate_rules"))
+    
+    # Skrytí méně důležitých nastavení do expanderu pro mobil
+    with st.expander("⚙️ Pokročilá nastavení pravidel"):
+        st.selectbox(t("response_length_label"), options=LENGTH_KEYS, format_func=lambda k: t(f"length_{k}"), key="w_length", on_change=update_state, args=("w_length", "response_length"))
+        st.radio(t("debate_goal_label"), options=GOAL_KEYS, format_func=lambda k: t(f"goal_{k}"), key="w_goal", on_change=update_state, args=("w_goal", "debate_goal"))
+        st.multiselect(t("rules_label"), options=RULE_KEYS, format_func=lambda k: t(f"rule_{k}"), key="w_rules", on_change=update_state, args=("w_rules", "debate_rules"))
 
 elif st.session_state.setup_step == 2:
     st.subheader(t("setup_step2"))
@@ -107,98 +110,99 @@ elif st.session_state.setup_step == 2:
     if "w_max_rounds" not in st.session_state: st.session_state.w_max_rounds = st.session_state.max_rounds
     if "w_memory_limit" not in st.session_state: st.session_state.w_memory_limit = st.session_state.memory_limit
 
-    st.markdown(f"**{t('persona_a')} (AI)**")
-    st.text_input(f"{t('name')} A", key="w_role_a_name", on_change=update_state, args=("w_role_a_name", "role_a_name"))
-    st.selectbox(f"{t('provider_select')} A:", select_options, key="w_provider_a", on_change=update_state, args=("w_provider_a", "provider_a"))
-    
-    if not is_simple:
-        col_t, col_e = st.columns(2)
-        with col_t: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_a", on_change=update_state, args=("w_temperament_a", "temperament_a"), help=t("temperament_hint"))
-        with col_e: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_a", on_change=update_state, args=("w_expertise_a", "expertise_a"), help=t("temperament_hint"))
-        st.button(t("random_button"), key="random_a", on_click=randomize_persona, args=("a",), use_container_width=True)
-    
-    st.radio(f"{t('input_type')} A:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_a", on_change=update_state, args=("w_input_type_a", "input_type_a"), index=0 if st.session_state.w_input_type_a == "manual" else 1)
-    
-    if st.session_state.w_input_type_a == "manual": 
-        st.text_area(f"{t('instructions')} A", key="w_role_a_prompt", on_change=update_state, args=("w_role_a_prompt", "role_a_prompt"), height=150)
-    else:
-        st.caption(t("allowed_persona"))
-        file_a = st.file_uploader(f"{t('upload')} A", type=["md", "txt"], key="file_a", label_visibility="collapsed")
-        if file_a: 
-            text_a = extract_text_from_file(file_a)
-            if len(text_a) > 10000:
-                st.warning(t("err_persona_too_long"))
-                text_a = text_a[:10000]
-            st.session_state.w_role_a_prompt = text_a
-            st.session_state.role_a_prompt = st.session_state.w_role_a_prompt
-
-    st.divider()
-
-    if mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
-        st.markdown(f"**{t('persona_b')} ({t('human')})**")
-        st.text_input(t("human_name"), key="w_role_b_name", on_change=update_state, args=("w_role_b_name", "role_b_name"))
-    else:
-        st.markdown(f"**{t('persona_b')} (AI)**")
-        st.text_input(f"{t('name')} B", key="w_role_b_name", on_change=update_state, args=("w_role_b_name", "role_b_name"))
-        st.selectbox(f"{t('provider_select')} B:", select_options, key="w_provider_b", on_change=update_state, args=("w_provider_b", "provider_b"))
+    # OSOBNOST A - otevřená
+    with st.expander(f"**{t('persona_a')} (AI)**", expanded=True):
+        st.text_input(f"{t('name')} A", key="w_role_a_name", on_change=update_state, args=("w_role_a_name", "role_a_name"))
+        st.selectbox(f"{t('provider_select')} A:", select_options, key="w_provider_a", on_change=update_state, args=("w_provider_a", "provider_a"))
         
         if not is_simple:
-            col_t2, col_e2 = st.columns(2)
-            with col_t2: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_b", on_change=update_state, args=("w_temperament_b", "temperament_b"), help=t("temperament_hint"))
-            with col_e2: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_b", on_change=update_state, args=("w_expertise_b", "expertise_b"), help=t("temperament_hint"))
-            st.button(t("random_button"), key="random_b", on_click=randomize_persona, args=("b",), use_container_width=True)
+            col_t, col_e = st.columns(2)
+            with col_t: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_a", on_change=update_state, args=("w_temperament_a", "temperament_a"), help=t("temperament_hint"))
+            with col_e: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_a", on_change=update_state, args=("w_expertise_a", "expertise_a"), help=t("temperament_hint"))
+            st.button(t("random_button"), key="random_a", on_click=randomize_persona, args=("a",), use_container_width=True)
         
-        st.radio(f"{t('input_type')} B:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_b", on_change=update_state, args=("w_input_type_b", "input_type_b"), index=0 if st.session_state.w_input_type_b == "manual" else 1)
+        st.radio(f"{t('input_type')} A:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_a", on_change=update_state, args=("w_input_type_a", "input_type_a"), index=0 if st.session_state.w_input_type_a == "manual" else 1)
         
-        if st.session_state.w_input_type_b == "manual": 
-            st.text_area(f"{t('instructions')} B", key="w_role_b_prompt", on_change=update_state, args=("w_role_b_prompt", "role_b_prompt"), height=150)
+        if st.session_state.w_input_type_a == "manual": 
+            st.text_area(f"{t('instructions')} A", key="w_role_a_prompt", on_change=update_state, args=("w_role_a_prompt", "role_a_prompt"), height=150)
         else:
             st.caption(t("allowed_persona"))
-            file_b = st.file_uploader(f"{t('upload')} B", type=["md", "txt"], key="file_b", label_visibility="collapsed")
-            if file_b: 
-                text_b = extract_text_from_file(file_b)
-                if len(text_b) > 10000:
+            file_a = st.file_uploader(f"{t('upload')} A", type=["md", "txt"], key="file_a", label_visibility="collapsed")
+            if file_a: 
+                text_a = extract_text_from_file(file_a)
+                if len(text_a) > 10000:
                     st.warning(t("err_persona_too_long"))
-                    text_b = text_b[:10000]
-                st.session_state.w_role_b_prompt = text_b
-                st.session_state.role_b_prompt = st.session_state.w_role_b_prompt
+                    text_a = text_a[:10000]
+                st.session_state.w_role_a_prompt = text_a
+                st.session_state.role_a_prompt = st.session_state.w_role_a_prompt
 
-    if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and not is_simple:
-        st.divider()
-        if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
-            st.markdown(f"**{t('persona_c')} ({t('human')})**")
-            st.text_input(t("human_name"), key="w_role_c_name", on_change=update_state, args=("w_role_c_name", "role_c_name"))
-        else:
-            st.markdown(f"**{t('persona_c')} (AI)**")
-            st.text_input(f"{t('name')} C", key="w_role_c_name", on_change=update_state, args=("w_role_c_name", "role_c_name"))
-            st.selectbox(f"{t('provider_select')} C:", select_options, key="w_provider_c", on_change=update_state, args=("w_provider_c", "provider_c"))
+    # OSOBNOST B - sbalená
+    if mode in ["ai_vs_human", "ai_vs_human_vs_human"]:
+        with st.expander(f"**{t('persona_b')} ({t('human')})**", expanded=False):
+            st.text_input(t("human_name"), key="w_role_b_name", on_change=update_state, args=("w_role_b_name", "role_b_name"))
+    else:
+        with st.expander(f"**{t('persona_b')} (AI)**", expanded=False):
+            st.text_input(f"{t('name')} B", key="w_role_b_name", on_change=update_state, args=("w_role_b_name", "role_b_name"))
+            st.selectbox(f"{t('provider_select')} B:", select_options, key="w_provider_b", on_change=update_state, args=("w_provider_b", "provider_b"))
             
-            col_t3, col_e3 = st.columns(2)
-            with col_t3: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_c", on_change=update_state, args=("w_temperament_c", "temperament_c"), help=t("temperament_hint"))
-            with col_e3: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_c", on_change=update_state, args=("w_expertise_c", "expertise_c"), help=t("temperament_hint"))
+            if not is_simple:
+                col_t2, col_e2 = st.columns(2)
+                with col_t2: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_b", on_change=update_state, args=("w_temperament_b", "temperament_b"), help=t("temperament_hint"))
+                with col_e2: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_b", on_change=update_state, args=("w_expertise_b", "expertise_b"), help=t("temperament_hint"))
+                st.button(t("random_button"), key="random_b", on_click=randomize_persona, args=("b",), use_container_width=True)
             
-            st.button(t("random_button"), key="random_c", on_click=randomize_persona, args=("c",), use_container_width=True)
-            st.radio(f"{t('input_type')} C:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_c", on_change=update_state, args=("w_input_type_c", "input_type_c"), index=0 if st.session_state.w_input_type_c == "manual" else 1)
+            st.radio(f"{t('input_type')} B:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_b", on_change=update_state, args=("w_input_type_b", "input_type_b"), index=0 if st.session_state.w_input_type_b == "manual" else 1)
             
-            if st.session_state.w_input_type_c == "manual": 
-                st.text_area(f"{t('instructions')} C", key="w_role_c_prompt", on_change=update_state, args=("w_role_c_prompt", "role_c_prompt"), height=150)
+            if st.session_state.w_input_type_b == "manual": 
+                st.text_area(f"{t('instructions')} B", key="w_role_b_prompt", on_change=update_state, args=("w_role_b_prompt", "role_b_prompt"), height=150)
             else:
                 st.caption(t("allowed_persona"))
-                file_c = st.file_uploader(f"{t('upload')} C", type=["md", "txt"], key="file_c", label_visibility="collapsed")
-                if file_c: 
-                    text_c = extract_text_from_file(file_c)
-                    if len(text_c) > 10000:
+                file_b = st.file_uploader(f"{t('upload')} B", type=["md", "txt"], key="file_b", label_visibility="collapsed")
+                if file_b: 
+                    text_b = extract_text_from_file(file_b)
+                    if len(text_b) > 10000:
                         st.warning(t("err_persona_too_long"))
-                        text_c = text_c[:10000]
-                    st.session_state.w_role_c_prompt = text_c
-                    st.session_state.role_c_prompt = st.session_state.w_role_c_prompt
+                        text_b = text_b[:10000]
+                    st.session_state.w_role_b_prompt = text_b
+                    st.session_state.role_b_prompt = st.session_state.w_role_b_prompt
+
+    # OSOBNOST C - sbalená (pouze pokud je potřeba)
+    if mode in ["ai_vs_ai_vs_ai", "ai_vs_ai_vs_human", "ai_vs_human_vs_human"] and not is_simple:
+        if mode in ["ai_vs_ai_vs_human", "ai_vs_human_vs_human"]:
+            with st.expander(f"**{t('persona_c')} ({t('human')})**", expanded=False):
+                st.text_input(t("human_name"), key="w_role_c_name", on_change=update_state, args=("w_role_c_name", "role_c_name"))
+        else:
+            with st.expander(f"**{t('persona_c')} (AI)**", expanded=False):
+                st.text_input(f"{t('name')} C", key="w_role_c_name", on_change=update_state, args=("w_role_c_name", "role_c_name"))
+                st.selectbox(f"{t('provider_select')} C:", select_options, key="w_provider_c", on_change=update_state, args=("w_provider_c", "provider_c"))
+                
+                col_t3, col_e3 = st.columns(2)
+                with col_t3: st.selectbox(t("temperament_label"), options=TEMPERAMENT_OPTIONS, format_func=format_temperament, key="w_temperament_c", on_change=update_state, args=("w_temperament_c", "temperament_c"), help=t("temperament_hint"))
+                with col_e3: st.selectbox(t("expertise_label"), options=EXPERTISE_OPTIONS, format_func=format_expertise, key="w_expertise_c", on_change=update_state, args=("w_expertise_c", "expertise_c"), help=t("temperament_hint"))
+                
+                st.button(t("random_button"), key="random_c", on_click=randomize_persona, args=("c",), use_container_width=True)
+                st.radio(f"{t('input_type')} C:", options=["manual", "upload"], format_func=lambda x: t(x), key="w_input_type_c", on_change=update_state, args=("w_input_type_c", "input_type_c"), index=0 if st.session_state.w_input_type_c == "manual" else 1)
+                
+                if st.session_state.w_input_type_c == "manual": 
+                    st.text_area(f"{t('instructions')} C", key="w_role_c_prompt", on_change=update_state, args=("w_role_c_prompt", "role_c_prompt"), height=150)
+                else:
+                    st.caption(t("allowed_persona"))
+                    file_c = st.file_uploader(f"{t('upload')} C", type=["md", "txt"], key="file_c", label_visibility="collapsed")
+                    if file_c: 
+                        text_c = extract_text_from_file(file_c)
+                        if len(text_c) > 10000:
+                            st.warning(t("err_persona_too_long"))
+                            text_c = text_c[:10000]
+                        st.session_state.w_role_c_prompt = text_c
+                        st.session_state.role_c_prompt = st.session_state.w_role_c_prompt
 
     st.divider()
-    st.markdown(f"**{t('moderator')}**")
-    st.selectbox(f"{t('provider_select')}:", select_options, key="w_provider_mod", on_change=update_state, args=("w_provider_mod", "provider_mod"))
     
-    if not is_simple:
-        with st.expander(t("advanced_settings")):
+    # Moderátor v expanderu
+    with st.expander(f"**{t('moderator')}**", expanded=False):
+        st.selectbox(f"{t('provider_select')}:", select_options, key="w_provider_mod", on_change=update_state, args=("w_provider_mod", "provider_mod"))
+        
+        if not is_simple:
             st.slider(f"{t('rounds')} {t('max_7')}", min_value=2, max_value=7, key="w_max_rounds", on_change=update_state, args=("w_max_rounds", "max_rounds"))
             st.slider(t("memory_limit_label"), min_value=2, max_value=10, key="w_memory_limit", on_change=update_state, args=("w_memory_limit", "memory_limit"))
 
