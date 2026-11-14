@@ -291,32 +291,26 @@ if not st.session_state.debate_active:
     st.caption(t("debate_caption"))
     st.divider()
     
-        col1, col2 = st.columns(2)
-    
+    # OPRAVENÁ FUNKCE PRO RESET A START
     def reset_and_start(debate_type):
         st.session_state.debate_type = debate_type
         st.session_state.setup_step = 1  # Vynutíme začátek od Kroku 1
-        # Smažeme dočasná data z předchozího nastavení (klíče začínající na "w_")
         for k in list(st.session_state.keys()):
-            if k.startswith("w_"): del st.session_state[k]
+            if k.startswith("w_"): 
+                del st.session_state[k]  # Smažeme stará data z formuláře
         st.switch_page("app_pages/setup.py")
 
+    col1, col2 = st.columns(2)
     with col1:
         if st.button(t("simple_debate"), type="primary", use_container_width=True):
             reset_and_start("simple")
     with col2:
         if st.button(t("advanced_debate"), use_container_width=True):
             reset_and_start("advanced")
-    st.stop()
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button(t("simple_debate"), type="primary", use_container_width=True):
-            st.session_state.debate_type = "simple"; st.switch_page("app_pages/setup.py")
-    with col2:
-        if st.button(t("advanced_debate"), use_container_width=True):
-            st.session_state.debate_type = "advanced"; st.switch_page("app_pages/setup.py")
+    
     st.stop()
 
+# --- POKUD DEBATA BĚŽÍ, POKRAČUJE ZDE ---
 is_simple = st.session_state.get("debate_type", "advanced") == "simple"
 available_providers = []
 if st.session_state.gemini_key.strip(): available_providers.append("Gemini")
