@@ -250,9 +250,32 @@ def render_summary_ui(available_providers_list):
                 )
 
 # --- ÚVODNÍ STRÁNKA ---
-st.title(t("debate_title"))
 if not st.session_state.debate_active:
-    st.info(t("tip"), icon="💡"); st.caption(t("debate_caption")); st.divider()
+    # Načtení loga
+    import os
+    logo_b64_main = ""
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        logo_path = os.path.join(current_dir, "..", "ai_arena.png")
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as f:
+                logo_b64_main = base64.b64encode(f.read()).decode("utf-8")
+    except Exception:
+        pass
+
+    # HTML pro logo a nadpis
+    logo_html = f'<img src="data:image/png;base64,{logo_b64_main}" style="width: 180px; margin-bottom: 15px; filter: drop-shadow(0 0 20px rgba(255, 51, 51, 0.4));">' if logo_b64_main else ''
+    
+    st.markdown(f"""
+        <div style="text-align: center; margin-top: 20px; margin-bottom: 30px;">
+            {logo_html}
+            <h1 style="color: #ff3333; font-weight: 900; letter-spacing: 2px; margin: 0;">{t("debate_title")}</h1>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.info(t("tip"), icon="💡")
+    st.caption(t("debate_caption"))
+    st.divider()
     col1, col2 = st.columns(2)
     with col1:
         if st.button(t("simple_debate"), type="primary", use_container_width=True):
