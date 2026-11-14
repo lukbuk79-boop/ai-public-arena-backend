@@ -262,16 +262,17 @@ if not st.session_state.debate_active:
     </style>
     """, unsafe_allow_html=True)
 
-    # 2. Zobrazíme logo vycentrované pomocí sloupců
-    col1, col2, col3 = st.columns([1, 1.5, 1])
+        # 2. Zobrazíme logo vycentrované pomocí sloupců
+    col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
         try:
-            # Zkusíme načíst logo z kořene repozitáře
-            st.image("ai_arena.png", use_container_width=True)
+            # Zkusíme načíst logo z kořene repozitáře. 
+            # Změnou čísla u width= změníte velikost (např. 150, 200, 250).
+            st.image("ai_arena.png", width=150)
         except Exception:
             # Pokud by cesta selhala (např. kvůli struktuře složek), zkusíme o úroveň výš
             try:
-                st.image("../ai_arena.png", use_container_width=True)
+                st.image("../ai_arena.png", width=220)
             except Exception:
                 st.warning("Logo 'ai_arena.png' nebylo nalezeno.")
 
