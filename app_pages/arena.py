@@ -13,7 +13,7 @@ from utils.ai_providers import (
     generate_filename_from_topic, call_ai, call_critique_api
 )
 from utils.pdf_export import generate_pdf, extract_text_from_file
-from utils.storage import get_next_counter, get_r2_client, save_critique_result, reset_critique_state
+from utils.storage import get_next_counter, get_r2_client, save_critique_result, reset_critique_state, log_debate_event
 
 init_state()
 
@@ -394,6 +394,10 @@ expander_title = "👤 Definice diskutujících (s čím do diskuze šli)" if la
 with st.expander(expander_title, expanded=False):
     st.markdown(personas_md.replace("## Definice diskutujících\n\n", "").replace("## Debater Definitions\n\n", ""))
 
+# Nastavení počátečního času pro analytiku, pokud ještě není
+if "debate_start_time" not in st.session_state:
+    st.session_state.debate_start_time = time.time()
+
 for i, (sender, text, model) in enumerate(st.session_state.full_history):
     is_human = model == "Human"
     avatar = next((p["avatar"] for p in participants if p["name"] == sender), "🔵")
@@ -425,6 +429,23 @@ if not st.session_state.debate_finished:
 
     if st.session_state.current_round >= st.session_state.max_rounds:
         st.session_state.debate_finished = True
+        
+        # --- NOVÉ: ZALOGOVÁNÍ DOKONČENÉ DEBATY ---
+        duration = 0
+        if "debate_start_time" in st.session_state:
+            duration = int(time.time() - st.session_state.debate_start_time)
+            
+        log_debate_event("debate_completed", {
+            "topic": st.session_state.current_topic,
+            "mode": mode,
+            "is_simple": is_simple,
+            "duration_sec": duration,
+            "rounds": st.session_state.max_rounds,
+            "lang": st.session_state.lang,
+            "providers": [st.session_state.provider_a, st.session_state.provider_b, st.session_state.provider_mod]
+        })
+        # -----------------------------------------
+
         time.sleep(get_delay_for_provider(st.session_state.provider_mod))
         
         # Kontext pro rozhodčího s definicemi
