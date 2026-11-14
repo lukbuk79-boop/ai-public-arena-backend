@@ -7,7 +7,7 @@ st.title("📊 Analytika Arény")
 
 # Jednoduchá ochrana heslem
 heslo = st.text_input("Zadejte heslo pro přístup k analytice:", type="password")
-if heslo != st.secrets.get("DASHBOARD_PASSWORD", "tajne_heslo"):
+if heslo != st.secrets.get("DASHBOARD_PASSWORD", "buky"):
     st.stop()
 
 # Načtení dat (používá cache z storage.py)
