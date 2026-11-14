@@ -3,6 +3,7 @@ from botocore.client import Config
 import streamlit as st
 from datetime import datetime
 from utils.pdf_export import generate_pdf
+import json
 
 @st.cache_resource
 def get_r2_client():
@@ -26,6 +27,38 @@ def get_next_counter():
     next_val = current + 1
     s3.put_object(Bucket=bucket, Key="counter.txt", Body=str(next_val).encode("utf-8"))
     return f"{next_val:05d}"
+
+# --- NOVÁ FUNKCE PRO ANALYTIKU ---
+def log_debate_event(event_type, data):
+    """Uloží jednoduchý analytický záznam do R2 (do složky analytics/)."""
+    try:
+        s3 = get_r2_client()
+        bucket = st.secrets["R2_BUCKET_NAME"]
+        
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "event": event_type,
+            **data
+        }
+        
+        # Ukládáme do souboru pojmenovaného podle dne (např. debates_2026-11-14.jsonl)
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        key = f"analytics/debates_{date_str}.jsonl"
+        
+        # Zkusíme načíst existující soubor pro daný den
+        try:
+            existing = s3.get_object(Bucket=bucket, Key=key)["Body"].read().decode("utf-8")
+        except Exception:
+            existing = ""
+            
+        # Přidáme nový řádek a uložíme
+        new_content = existing + json.dumps(log_entry, ensure_ascii=False) + "\n"
+        s3.put_object(Bucket=bucket, Key=key, Body=new_content.encode("utf-8"))
+    except Exception as e:
+        # Analytika nesmí nikdy shodit aplikaci
+        print(f"Chyba při ukládání analytiky: {e}")
+        pass
+# --------------------------------
 
 def generate_critique_md(critique_text, model_used, topic):
     ts = datetime.now().strftime('%d.%m.%Y %H:%M')
