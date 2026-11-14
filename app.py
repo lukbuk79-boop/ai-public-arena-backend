@@ -84,6 +84,7 @@ with st.sidebar:
 pg = st.navigation([
     st.Page("app_pages/arena.py", title=t("nav_arena"), icon=":material/swords:"),
     st.Page("app_pages/setup.py", title=t("nav_setup"), icon=":material/settings:"),
+    st.Page("app_pages/dashboard.py", title="📊 Analytika", icon=":material/bar_chart:"), # <-- PŘIDANÝ ŘÁDEK
     st.Page("app_pages/help.py", title=t("nav_help"), icon=":material/help:"),
 ])
 
