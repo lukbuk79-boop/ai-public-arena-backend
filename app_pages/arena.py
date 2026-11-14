@@ -251,8 +251,9 @@ def render_summary_ui(available_providers_list):
 
 # --- ÚVODNÍ STRÁNKA ---
 if not st.session_state.debate_active:
-    # Načtení loga
     import os
+    
+    # 1. Načtení loga
     logo_b64_main = ""
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -263,19 +264,30 @@ if not st.session_state.debate_active:
     except Exception:
         pass
 
-    # HTML pro logo a nadpis
-    logo_html = f'<img src="data:image/png;base64,{logo_b64_main}" style="width: 180px; margin-bottom: 15px; filter: drop-shadow(0 0 20px rgba(255, 51, 51, 0.4));">' if logo_b64_main else ''
+    # 2. Sestavení HTML (bez odsazení!)
+    logo_img_tag = f'<img src="data:image/png;base64,{logo_b64_main}" style="width: 160px; margin-bottom: 15px; filter: drop-shadow(0 0 25px rgba(255, 51, 51, 0.6));">' if logo_b64_main else ''
     
-    st.markdown(f"""
-        <div style="text-align: center; margin-top: 20px; margin-bottom: 30px;">
-            {logo_html}
-            <h1 style="color: #ff3333; font-weight: 900; letter-spacing: 2px; margin: 0;">{t("debate_title")}</h1>
-        </div>
-    """, unsafe_allow_html=True)
+    # DŮLEŽITÉ: Tady nesmí být na začátku řádků žádné mezery!
+    html_content = f"""<div style="text-align: center; margin-top: 30px; margin-bottom: 40px;">
+{logo_img_tag}
+<h1 style="color: #ff3333; font-weight: 900; letter-spacing: 2px; margin: 0;">{t("debate_title")}</h1>
+</div>"""
 
+    st.markdown(html_content, unsafe_allow_html=True)
+
+    # 3. Zbytek úvodní stránky
     st.info(t("tip"), icon="💡")
     st.caption(t("debate_caption"))
     st.divider()
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(t("simple_debate"), type="primary", use_container_width=True):
+            st.session_state.debate_type = "simple"; st.switch_page("app_pages/setup.py")
+    with col2:
+        if st.button(t("advanced_debate"), use_container_width=True):
+            st.session_state.debate_type = "advanced"; st.switch_page("app_pages/setup.py")
+    st.stop()
     col1, col2 = st.columns(2)
     with col1:
         if st.button(t("simple_debate"), type="primary", use_container_width=True):
