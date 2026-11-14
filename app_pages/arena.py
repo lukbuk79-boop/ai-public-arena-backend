@@ -177,8 +177,8 @@ def save_summary_to_state_and_r2(summary_text, model_name="External AI"):
     try:
         s3 = get_r2_client()
         bucket = st.secrets["R2_BUCKET_NAME"]
-        s3.put_object(Bucket=bucket, Key=f"summary/{base}.md", Body=st.session_state.summary_md.encode("utf-8"))
-        s3.put_object(Bucket=bucket, Key=f"summary/{base}.pdf", Body=st.session_state.summary_pdf)
+        s3.put_object(Bucket=bucket, Key=f"summary/markdown/{base}.md", Body=st.session_state.summary_md.encode("utf-8"))
+        s3.put_object(Bucket=bucket, Key=f"summary/pdf/{base}.pdf", Body=st.session_state.summary_pdf)
         return True, base
     except Exception as e:
         return False, str(e)
