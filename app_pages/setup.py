@@ -1,5 +1,6 @@
 import streamlit as st
 import random
+import time
 from utils.config import t, PRESET_KEYS, TEMPERAMENT_KEYS, EXPERTISE_KEYS, LENGTH_KEYS, GOAL_KEYS, RULE_KEYS, MODE_KEYS, PRESETS
 from utils.pdf_export import extract_text_from_file
 
@@ -81,7 +82,6 @@ if st.session_state.setup_step == 1 and not is_simple:
     st.divider()
     st.selectbox(t("preset_label"), options=PRESET_KEYS, format_func=lambda k: t(f"preset_{k}"), key="w_preset", on_change=apply_preset_callback, help=t("preset_help"))
     
-    # Skrytí méně důležitých nastavení do expanderu pro mobil
     with st.expander("⚙️ Pokročilá nastavení pravidel"):
         st.selectbox(t("response_length_label"), options=LENGTH_KEYS, format_func=lambda k: t(f"length_{k}"), key="w_length", on_change=update_state, args=("w_length", "response_length"))
         st.radio(t("debate_goal_label"), options=GOAL_KEYS, format_func=lambda k: t(f"goal_{k}"), key="w_goal", on_change=update_state, args=("w_goal", "debate_goal"))
@@ -264,4 +264,8 @@ with col2:
                 st.session_state.full_history = []
                 st.session_state.current_topic = st.session_state.topic_input
                 st.session_state.setup_step = 1
+                
+                # NOVÉ: Reset času pro měření délky debaty
+                st.session_state.debate_start_time = time.time()
+                
                 st.switch_page("app_pages/arena.py")
