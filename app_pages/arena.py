@@ -251,40 +251,43 @@ def render_summary_ui(available_providers_list):
 
 # --- ÚVODNÍ STRÁNKA ---
 if not st.session_state.debate_active:
-    import os
     
-    # 1. Načtení loga
-    logo_b64_main = ""
-    try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        logo_path = os.path.join(current_dir, "..", "ai_arena.png")
-        if os.path.exists(logo_path):
-            with open(logo_path, "rb") as f:
-                logo_b64_main = base64.b64encode(f.read()).decode("utf-8")
-    except Exception:
-        pass
+    # 1. Přidáme CSS styl pro červený "glow" efekt okolo loga
+    st.markdown("""
+    <style>
+    [data-testid="stImage"] img {
+        filter: drop-shadow(0 0 25px rgba(255, 51, 51, 0.6));
+        margin-bottom: 20px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-    # 2. Sestavení HTML (bez odsazení!)
-    logo_img_tag = f'<img src="data:image/png;base64,{logo_b64_main}" style="width: 160px; margin-bottom: 15px; filter: drop-shadow(0 0 25px rgba(255, 51, 51, 0.6));">' if logo_b64_main else ''
-    
-    # DŮLEŽITÉ: Tady nesmí být na začátku řádků žádné mezery!
-    html_content = f"""<div style="text-align: center; margin-top: 30px; margin-bottom: 40px;">
-{logo_img_tag}
-<h1 style="color: #ff3333; font-weight: 900; letter-spacing: 2px; margin: 0;">{t("debate_title")}</h1>
-</div>"""
+    # 2. Zobrazíme logo vycentrované pomocí sloupců
+    col1, col2, col3 = st.columns([1, 1.5, 1])
+    with col2:
+        try:
+            # Zkusíme načíst logo z kořene repozitáře
+            st.image("ai_arena.png", use_container_width=True)
+        except Exception:
+            # Pokud by cesta selhala (např. kvůli struktuře složek), zkusíme o úroveň výš
+            try:
+                st.image("../ai_arena.png", use_container_width=True)
+            except Exception:
+                st.warning("Logo 'ai_arena.png' nebylo nalezeno.")
 
-    st.markdown(html_content, unsafe_allow_html=True)
+    # 3. Přidáme nadpis pod logo
+    st.markdown(f"<h1 style='text-align: center; color: #ff3333; font-weight: 900; letter-spacing: 2px; margin-bottom: 40px;'>{t('debate_title')}</h1>", unsafe_allow_html=True)
 
-    # 3. Zbytek úvodní stránky
+    # 4. Zbytek úvodní stránky
     st.info(t("tip"), icon="💡")
     st.caption(t("debate_caption"))
     st.divider()
     
-    col1, col2 = st.columns(2)
-    with col1:
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
         if st.button(t("simple_debate"), type="primary", use_container_width=True):
             st.session_state.debate_type = "simple"; st.switch_page("app_pages/setup.py")
-    with col2:
+    with col_btn2:
         if st.button(t("advanced_debate"), use_container_width=True):
             st.session_state.debate_type = "advanced"; st.switch_page("app_pages/setup.py")
     st.stop()
