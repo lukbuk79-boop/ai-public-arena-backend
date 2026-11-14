@@ -124,7 +124,7 @@ if st.session_state.lang == "cs":
     ## ⚙️ Jak funguje nastavení Arény?
     Nastavení je rozděleno do **3 přehledných kroků**:
     *   **Krok 1: Režim a pravidla (jen pokročilá).** Vyberete, kdo bude debatovat (AI vs AI, AI vs člověk atd.). Můžete zvolit **Preset** (Akademická, Agresivní, Hledání konsenzu...), který automaticky nastaví vhodný temperament a pravidla. Cíl debaty určuje, zda má rozhodčí vybrat vítěze, najít shodu, nebo popsat neshodu.
-    *   **Krok 2: Osobnosti.** Zde nastavíte jména. U AI osobností můžete změnit **Temperament** a **Expertízu**. Můžete je nechat náhodně vygenerovat tlačítkem 🎲, nebo zvolit "Nedefinováno" (pokud chcete, aby se AI chovala striktně podle instrukcí). Maximální počet kol debaty je **7**.
+    *   **Krok 2: Osobnosti.** Zde nastavíte jména. U AI osobností můžete změnit **Temperament** a **Expertízu**. Můžete je nechat náhodně vygenerovat tlačítkem 🎲, nebo zvolit **"Nedefinováno"** (to je vhodné např. pokud diskutuje známá historická osobnost a chcete, aby se AI striktně držela instrukcí). Maximální počet kol debaty je **7**.
     *   **Krok 3: Téma a spuštění.** Zadejte téma nebo nahrajte podklady. Pokud hrajete v režimu s člověkem, aplikace se při Vašem tahu zastaví a dole na Vás bude čekat textové pole pro Váš argument.
     """)
 else:
@@ -132,7 +132,7 @@ else:
     ## ⚙️ How does the Arena setup work?
     The setup is divided into **3 clear steps**:
     *   **Step 1: Mode & Rules (advanced only).** Choose who will debate (AI vs AI, AI vs Human, etc.). You can select a **Preset** (Academic, Aggressive, Consensus seeking...), which will automatically set the appropriate temperament and rules. The Debate Goal determines whether the judge should pick a winner, find common ground, or just highlight disagreements.
-    *   **Step 2: Personas.** Set the names here. For AI personas, you can change their **Temperament** and **Expertise**. You can randomly generate them with the 🎲 button, or choose "Undefined" (if you want the AI to strictly follow the instructions). The maximum number of debate rounds is **7**.
+    *   **Step 2: Personas.** Set the names here. For AI personas, you can change their **Temperament** and **Expertise**. You can randomly generate them with the 🎲 button, or choose **"Undefined"** (this is suitable e.g. if a well-known historical figure is debating and you want the AI to strictly follow the instructions). The maximum number of debate rounds is **7**.
     *   **Step 3: Topic & Start.** Enter the topic or upload materials. If you are playing in a mode with a human, the app will pause on your turn and a text input field will appear at the bottom for your argument.
     """)
 
@@ -145,8 +145,6 @@ if st.session_state.lang == "cs":
     Pro zajištění nejlepší kvality a spolehlivosti **podporujeme pouze formáty `.md` (Markdown) a `.txt`**. Formát PDF jsme odstranili, protože u naskenovaných dokumentů často selhává čtení textu.
     *   **Instrukce pro osobnosti:** Limit je **10 000 znaků** (cca 5 stran). Kratší instrukce pomáhají AI lépe se držet role.
     *   **Téma / Podklady pro diskuzi:** Limit je **45 000 znaků** (cca 25 stran). Pokud nahrajete delší soubor, aplikace vás upozorní a automaticky text zkrátí.
-    
-    *Poznámka: Všechny vygenerované debaty, kritiky a souhrny se automaticky ukládají do zabezpečeného cloudového úložiště pro případ, že byste si je chtěli stáhnout později.*
     """)
 else:
     st.markdown("""
@@ -154,8 +152,28 @@ else:
     To ensure the best quality and reliability, **we only support `.md` (Markdown) and `.txt` formats**. We have removed PDF because text extraction often fails with scanned documents.
     *   **Persona instructions:** Limit is **10,000 characters** (approx. 5 pages). Shorter instructions help the AI stay in character better.
     *   **Topic / Debate materials:** Limit is **45,000 characters** (approx. 25 pages). If you upload a longer file, the app will warn you and automatically truncate the text.
-    
-    *Note: All generated debates, critiques, and summaries are automatically archived in a secure cloud storage in case you want to download them later.*
+    """)
+
+st.divider()
+
+# --- EXPORT A PDF ---
+if st.session_state.lang == "cs":
+    st.markdown("""
+    ## 📥 Co obsahuje vygenerované PDF a Markdown?
+    Po skončení debaty (a případném vygenerování kritiky/souhrnu) si můžete vše stáhnout:
+    *   **Titulní strana:** PDF začíná tmavou titulní stranou s logem Arény a názvem tématu.
+    *   **Definice diskutujících:** Na začátku dokumentu jsou vždy shrnuty instrukce, s jakými jednotlivé osobnosti do debaty vstoupily.
+    *   **Vodoznak:** Na ostatních stránkách je jemný vodoznak loga, který neruší čtení.
+    *   **Uložení do cloudu:** Všechny vygenerované debaty, kritiky a souhrny se automaticky ukládají do zabezpečeného cloudového úložiště pro případ, že byste si je chtěli stáhnout později.
+    """)
+else:
+    st.markdown("""
+    ## 📥 What does the generated PDF and Markdown contain?
+    After the debate ends (and potentially generating a critique/summary), you can download everything:
+    *   **Title Page:** The PDF starts with a dark title page featuring the Arena logo and the topic name.
+    *   **Debater Definitions:** At the beginning of the document, the instructions each persona entered the debate with are always summarized.
+    *   **Watermark:** A subtle logo watermark is present on the other pages, not interfering with readability.
+    *   **Cloud Storage:** All generated debates, critiques, and summaries are automatically archived in a secure cloud storage in case you want to download them later.
     """)
 
 st.divider()
