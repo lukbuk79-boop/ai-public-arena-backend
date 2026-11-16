@@ -12,6 +12,8 @@ import time
 import uuid
 import concurrent.futures
 
+from utils.config import get_secret
+
 logger = logging.getLogger(__name__)
 
 COUNTER_KEY = "counter.txt"
