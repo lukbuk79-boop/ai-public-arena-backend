@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 
 TEXTS = {
@@ -244,3 +245,19 @@ JUDGE_GOAL_PROMPTS = {
     "cs": {"consensus": "TVŮJ CÍL NENÍ VYBRAT VÍTĚZE. Identifikuj, na čem se obě strany shodly, shrň společné závěry a jasně označ body, kde neshoda přetrvává. Formuluj doporučení pro další diskuzi.", "dissenter": "TVŮJ CÍL NENÍ VYBRAT VÍTĚZE. Popiš, v čem přesně se strany rozcházejí a proč (odlišné hodnoty, odlišná data, odlišné priority). Označ otázky, které zůstaly nerozhodnuté, a navrhni, co by bylo potřeba k jejich vyřešení."},
     "en": {"consensus": "YOUR GOAL IS NOT TO PICK A WINNER. Identify what both sides agreed on, summarize common conclusions, and clearly mark points where disagreement persists. Formulate recommendations for further discussion.", "dissenter": "YOUR GOAL IS NOT TO PICK A WINNER. Describe exactly where the parties diverge and why (different values, different data, different priorities). Mark questions that remained unresolved and suggest what would be needed to resolve them."}
 }
+
+def get_secret(key, default=None):
+    """Načte klíč z proměnných prostředí (Cloud Run) nebo ze st.secrets (Streamlit Cloud)."""
+    # 1. Zkusíme proměnné prostředí (Cloud Run, Docker, lokální .env)
+    val = os.getenv(key)
+    if val:
+        return val
+    
+    # 2. Zkusíme st.secrets (Streamlit Cloud)
+    try:
+        if key in st.secrets:
+            return st.secrets[key]
+    except Exception:
+        pass
+        
+    return default
