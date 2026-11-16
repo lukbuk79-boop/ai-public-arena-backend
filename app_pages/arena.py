@@ -1,3 +1,4 @@
+import os
 import re
 import streamlit as st
 import time
@@ -294,7 +295,6 @@ def render_summary_ui(available_providers_list):
 # --- ÚVODNÍ STRÁNKA ---
 if not st.session_state.debate_active:
     
-    import os
     import base64
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
