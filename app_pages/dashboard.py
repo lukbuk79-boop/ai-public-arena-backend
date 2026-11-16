@@ -1,3 +1,4 @@
+import os
 import hmac
 import time
 from datetime import datetime
@@ -12,7 +13,7 @@ st.title("📊 Analytika Arény")
 
 # --- Ochrana heslem ---
 # Žádné výchozí heslo: když DASHBOARD_PASSWORD chybí v secrets, dashboard zůstane zavřený.
-expected_password = st.secrets.get("DASHBOARD_PASSWORD")
+expected_password = os.getenv("DASHBOARD_PASSWORD")
 if not expected_password:
     st.error("Dashboard není nakonfigurován (chybí DASHBOARD_PASSWORD v secrets).")
     st.stop()
