@@ -9,6 +9,7 @@ from google.genai import types
 from openai import OpenAI
 
 from utils.config import t
+from utils.config import get_secret
 from utils.state import init_state
 from utils.ai_providers import (
     get_available_gemini_models, get_available_mistral_models, get_available_nvidia_models,
