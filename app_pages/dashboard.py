@@ -1,14 +1,31 @@
-import streamlit as st
-from utils.storage import get_r2_client, rebuild_totals_from_files
+import hmac
 import json
 from datetime import datetime
 
+import streamlit as st
+
+from utils.storage import get_r2_client, rebuild_totals_from_files
+
 st.title("📊 Analytika Arény")
 
-# Jednoduchá ochrana heslem
-heslo = st.text_input("Zadejte heslo pro přístup k analytice:", type="password")
-if heslo != st.secrets.get("DASHBOARD_PASSWORD", "tajne_heslo"):
+# --- Ochrana heslem ---
+# Žádné výchozí heslo: když DASHBOARD_PASSWORD chybí v secrets, dashboard zůstane zavřený.
+expected_password = st.secrets.get("DASHBOARD_PASSWORD")
+if not expected_password:
+    st.error("Dashboard není nakonfigurován (chybí DASHBOARD_PASSWORD v secrets).")
     st.stop()
+
+# Po úspěšném přihlášení si to pamatujeme v session, aby se heslo nezadávalo
+# znovu po každém kliknutí na tlačítko.
+if not st.session_state.get("dash_ok"):
+    heslo = st.text_input("Zadejte heslo pro přístup k analytice:", type="password")
+    if not heslo:
+        st.stop()
+    if not hmac.compare_digest(heslo.encode("utf-8"), str(expected_password).encode("utf-8")):
+        st.error("Špatné heslo.")
+        st.stop()
+    st.session_state.dash_ok = True
+    st.rerun()
 
 # Načtení dat (používá cache z storage.py)
 agg_data = rebuild_totals_from_files()
@@ -68,7 +85,7 @@ if st.button("Načíst detailní historii dnešního dne"):
         key = f"analytics/daily/debates_{date_str}.jsonl"
         obj = s3.get_object(Bucket=bucket, Key=key)
         lines = obj["Body"].read().decode("utf-8").strip().split("\n")
-        entries = [json.loads(l) for l in lines if l]
+        entries = [json.loads(line) for line in lines if line]
         st.dataframe(entries)
     except Exception as e:
         st.error(f"Nelze načíst detail: {e}")
