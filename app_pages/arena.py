@@ -1,3 +1,4 @@
+import re
 import streamlit as st
 import time
 from datetime import datetime
@@ -21,10 +22,6 @@ from utils.storage import (
 
 init_state()
 
-if "input_type_a" not in st.session_state: st.session_state.input_type_a = "Ručně"
-if "input_type_b" not in st.session_state: st.session_state.input_type_b = "Ručně"
-if "input_type_c" not in st.session_state: st.session_state.input_type_c = "Ručně"
-if "topic_input_type" not in st.session_state: st.session_state.topic_input_type = "Ručně"
 if "debate_type" not in st.session_state: st.session_state.debate_type = "advanced"
 
 if "summary_md" not in st.session_state: st.session_state.summary_md = ""
@@ -38,6 +35,23 @@ def get_display_name(name, temp_key, exp_key):
     if exp_key and exp_key != "undefined": parts.append(t(f"expertise_{exp_key}"))
     if not parts: return name
     return f"{name} ({', '.join(parts)})"
+
+def get_document_names():
+    """Názvy nahraných podkladů (z hlaviček '--- Document: x ---' ve spojeném textu)."""
+    text = st.session_state.get("topic_document_text", "")
+    return re.findall(r"^--- Document: (.+?) ---$", text, flags=re.MULTILINE)
+
+def get_document_block():
+    """Blok s podklady pro prompt. Prázdný řetězec, pokud žádné podklady nejsou."""
+    text = st.session_state.get("topic_document_text", "").strip()
+    if not text: return ""
+    if st.session_state.lang == "cs":
+        return f"PODKLADOVÉ DOKUMENTY (vycházej z nich a odkazuj se na ně):\n{text}\n\n"
+    return f"SOURCE DOCUMENTS (base your arguments on them and refer to them):\n{text}\n\n"
+
+def history_for_ai(history):
+    """Historie pro prompty: chybové hlášky API nepatří mezi argumenty debatérů."""
+    return "\n".join([f"{s}: {txt}" for s, txt, m in history if m not in ("Error", "API Error")])
 
 def get_personas_md(name_a, name_b, name_c, mode, is_simple):
     lang = st.session_state.lang
@@ -339,20 +353,29 @@ if st.session_state.gemini_key.strip(): available_providers.append("Gemini")
 if st.session_state.mistral_key.strip(): available_providers.append("Mistral")
 if st.session_state.nim_key.strip(): available_providers.append("NVIDIA NIM")
 
-gemini_client = genai.Client(api_key=st.session_state.gemini_key.strip(), http_options=types.HttpOptions(timeout=180000)) if "Gemini" in available_providers else None
-mistral_client = OpenAI(api_key=st.session_state.mistral_key.strip(), base_url="https://api.mistral.ai/v1", timeout=180.0) if "Mistral" in available_providers else None
-nim_client = OpenAI(api_key=st.session_state.nim_key.strip(), base_url="https://integrate.api.nvidia.com/v1", timeout=180.0) if "NVIDIA NIM" in available_providers else None
+ai_sig = (
+    st.session_state.gemini_key.strip(), st.session_state.mistral_key.strip(), st.session_state.nim_key.strip(),
+    st.session_state.get("custom_gemini_model", ""), st.session_state.get("custom_mistral_model", ""), st.session_state.get("custom_nvidia_model", ""),
+)
+if st.session_state.get("ai_sig") != ai_sig:
+    _gemini_client = genai.Client(api_key=st.session_state.gemini_key.strip(), http_options=types.HttpOptions(timeout=180000)) if "Gemini" in available_providers else None
+    _mistral_client = OpenAI(api_key=st.session_state.mistral_key.strip(), base_url="https://api.mistral.ai/v1", timeout=180.0) if "Mistral" in available_providers else None
+    _nim_client = OpenAI(api_key=st.session_state.nim_key.strip(), base_url="https://integrate.api.nvidia.com/v1", timeout=180.0) if "NVIDIA NIM" in available_providers else None
 
-gemini_models = get_available_gemini_models(gemini_client) if gemini_client else []
-mistral_models = get_available_mistral_models(mistral_client) if mistral_client else []
-nvidia_models = get_available_nvidia_models(nim_client) if nim_client else []
+    st.session_state.gemini_client = _gemini_client
+    st.session_state.mistral_client = _mistral_client
+    st.session_state.nim_client = _nim_client
+    st.session_state.gemini_models = get_available_gemini_models(_gemini_client) if _gemini_client else []
+    st.session_state.mistral_models = get_available_mistral_models(_mistral_client) if _mistral_client else []
+    st.session_state.nvidia_models = get_available_nvidia_models(_nim_client) if _nim_client else []
+    st.session_state.ai_sig = ai_sig
 
-st.session_state.gemini_client = gemini_client
-st.session_state.mistral_client = mistral_client
-st.session_state.nim_client = nim_client
-st.session_state.gemini_models = gemini_models
-st.session_state.mistral_models = mistral_models
-st.session_state.nvidia_models = nvidia_models
+gemini_client = st.session_state.gemini_client
+mistral_client = st.session_state.mistral_client
+nim_client = st.session_state.nim_client
+gemini_models = st.session_state.gemini_models
+mistral_models = st.session_state.mistral_models
+nvidia_models = st.session_state.nvidia_models
 
 ai_kwargs = {
     "gemini_client": gemini_client, "mistral_client": mistral_client, "nim_client": nim_client,
@@ -412,8 +435,8 @@ if not st.session_state.debate_finished:
         if current_speaker["type"] == "human": break
         with st.spinner(f"{current_speaker['name']} {t('thinking')}"):
             time.sleep(get_delay_for_provider(current_speaker["provider"]))
-            context = f"{t('topic')}: '{st.session_state.current_topic}'.\n\nContext:\n"
-            context += "\n".join([f"{s}: {txt}" for s, txt, m in st.session_state.full_history[-st.session_state.memory_limit:]])
+            context = f"{t('topic')}: '{st.session_state.current_topic}'.\n\n{get_document_block()}Context:\n"
+            context += history_for_ai(st.session_state.full_history[-st.session_state.memory_limit:])
             context += f"\nNyní jsi na řadě ty ({current_speaker['name']}). Reaguj na argumenty ostatních." if st.session_state.lang == "cs" else f"\nIt is your turn now ({current_speaker['name']}). Respond to the arguments of others."
             try:
                 resp, mod = call_ai(current_speaker["prompt"], context, current_speaker["provider"], **ai_kwargs)
@@ -429,21 +452,25 @@ if not st.session_state.debate_finished:
             st.session_state.current_round += 1
 
     if st.session_state.current_round >= st.session_state.max_rounds:
-        st.session_state.debate_finished = True
-        
+        # debate_finished se nastaví až na konci bloku: přeruší-li rerun závěrečné
+        # zpracování, proběhne znovu celé, místo aby zůstal prázdný verdikt.
         duration = 0
         if "debate_start_time" in st.session_state:
             duration = int(time.time() - st.session_state.debate_start_time)
-            
-        log_debate_event("debate_completed", {
-            "topic": st.session_state.current_topic,
-            "mode": mode,
-            "is_simple": is_simple,
-            "duration_sec": duration,
-            "rounds": st.session_state.max_rounds,
-            "lang": st.session_state.lang,
-            "providers": [st.session_state.provider_a, st.session_state.provider_b, st.session_state.provider_mod]
-        })
+
+        # Analytika se loguje jen jednou za debatu (id = čas startu)
+        if st.session_state.get("logged_debate_id") != st.session_state.get("debate_start_time"):
+            providers_used = [p["provider"] for p in participants if p["type"] == "ai"] + [st.session_state.provider_mod]
+            log_debate_event("debate_completed", {
+                "topic": st.session_state.current_topic,
+                "mode": mode,
+                "is_simple": is_simple,
+                "duration_sec": duration,
+                "rounds": st.session_state.max_rounds,
+                "lang": st.session_state.lang,
+                "providers": providers_used
+            })
+            st.session_state.logged_debate_id = st.session_state.get("debate_start_time")
 
         time.sleep(get_delay_for_provider(st.session_state.provider_mod))
         
@@ -453,7 +480,7 @@ if not st.session_state.debate_finished:
         if mode in ["ai_vs_ai", "ai_vs_ai_vs_ai", "ai_vs_ai_vs_human"] and st.session_state.role_b_prompt: personas_block_context += f"{name_b_display}: {st.session_state.role_b_prompt}\n"
         if not is_simple and mode == "ai_vs_ai_vs_ai" and st.session_state.role_c_prompt: personas_block_context += f"{name_c_display}: {st.session_state.role_c_prompt}\n"
 
-        summary_context = f"{t('topic')}: '{st.session_state.current_topic}'\n\n{personas_block_context}\nPRŮBĚH DEBATY:\n" + "\n".join([f"{s}: {txt}" for s, txt, m in st.session_state.full_history])
+        summary_context = f"{t('topic')}: '{st.session_state.current_topic}'\n\n{get_document_block()}{personas_block_context}\nPRŮBĚH DEBATY:\n" + history_for_ai(st.session_state.full_history)
         base_judge_prompt = "Jsi přísný a nestranný rozhodčí. Zhodnoť průběh debaty." if st.session_state.lang == "cs" else "You are a strict and impartial judge. Evaluate the debate."
         judge_prompt = build_judge_prompt(base_judge_prompt, st.session_state.debate_goal, lang)
         with st.spinner(t("thinking")):
@@ -468,11 +495,13 @@ if not st.session_state.debate_finished:
         with st.spinner(t("thinking")):
             md_history = "".join([f"### {s}\n{txt}\n\n<small>Model: {m}</small>\n\n---\n\n" for s, txt, m in st.session_state.full_history])
             
-            st.session_state.md_content = f"# {t('topic')}: {st.session_state.current_topic}\n\n" + personas_md + md_history + f"### {t('judge')}\n{final_sum}"
+            doc_names = get_document_names()
+            docs_line = (f"**{'Podklady' if lang == 'cs' else 'Documents'}:** {', '.join(doc_names)}\n\n" if doc_names else "")
+            st.session_state.md_content = f"# {t('topic')}: {st.session_state.current_topic}\n\n" + docs_line + personas_md + md_history + f"### {t('judge')}\n{final_sum}"
             st.session_state.pdf_bytes = generate_pdf(st.session_state.md_content)
             
             try: counter = get_next_counter()
-            except: counter = "00000"
+            except Exception: counter = datetime.now().strftime("%Y%m%d%H%M%S")  # unikátní, nepřepíše starší soubory
             st.session_state.file_counter = counter
             filename_base = generate_filename_from_topic(st.session_state.current_topic, call_ai, available_providers, **ai_kwargs)
             full_base = f"{counter}_{filename_base}"
@@ -490,6 +519,7 @@ if not st.session_state.debate_finished:
                 rebuild_totals_from_files.clear()
                 
             except Exception as e: st.error(t("err_r2", err=e))
+        st.session_state.debate_finished = True
         st.rerun()
 
     else:
