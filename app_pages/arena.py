@@ -192,7 +192,7 @@ def save_summary_to_state_and_r2(summary_text, model_name="External AI"):
     st.session_state.summary_base_name = base
     try:
         s3 = get_r2_client()
-        bucket = st.secrets["R2_BUCKET_NAME"]
+        bucket = os.getenv("R2_BUCKET_NAME")
         s3.put_object(Bucket=bucket, Key=f"summary/markdown/{base}.md", Body=st.session_state.summary_md.encode("utf-8"))
         s3.put_object(Bucket=bucket, Key=f"summary/pdf/{base}.pdf", Body=st.session_state.summary_pdf)
         return True, base
@@ -506,7 +506,8 @@ if not st.session_state.debate_finished:
             full_base = f"{counter}_{filename_base}"
             st.session_state.file_base_name = full_base
             try:
-                s3 = get_r2_client(); bucket = st.secrets["R2_BUCKET_NAME"]
+                s3 = get_r2_client(); bucket = os.getenv("R2_BUCKET_NAME")
+
                 if is_simple:
                     md_path = f"simply_discussion/markdown/{full_base}.md"; pdf_path = f"simply_discussion/pdf/{full_base}.pdf"
                 else:
