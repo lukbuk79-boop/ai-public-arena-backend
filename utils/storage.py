@@ -22,9 +22,9 @@ ANALYTICS_PREFIX = "analytics/daily/"
 def get_r2_client():
     return boto3.client(
         service_name="s3",
-        endpoint_url=f"https://{os.getenv('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com",
-        aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY"),
+        endpoint_url=f"https://{get_secret('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com",
+        aws_access_key_id=get_secret("R2_ACCESS_KEY_ID"),
+        aws_secret_access_key=get_secret("R2_SECRET_ACCESS_KEY"),
         region_name="auto",
         config=Config(
             signature_version="s3v4",
@@ -61,7 +61,7 @@ def get_next_counter(max_attempts=8):
       nikdy nedostanou stejné číslo; kdo prohraje, zkusí to znovu.
     """
     s3 = get_r2_client()
-    bucket = os.getenv("R2_BUCKET_NAME")
+    bucket = get_secret("R2_BUCKET_NAME")
 
     for attempt in range(max_attempts):
         etag = None
@@ -106,7 +106,7 @@ def log_debate_event(event_type, data):
     """
     try:
         s3 = get_r2_client()
-        bucket = os.getenv("R2_BUCKET_NAME")
+        bucket = get_secret("R2_BUCKET_NAME")
 
         now = datetime.now()
         log_entry = {
@@ -156,7 +156,7 @@ def _fetch_object_text(s3, bucket, key, etag):
 def rebuild_totals_from_files():
     """Stáhne nové soubory s událostmi z R2 (už stažené se berou z paměti) a vytvoří agregované statistiky."""
     s3 = get_r2_client()
-    bucket = os.getenv("R2_BUCKET_NAME")
+    bucket = get_secret("R2_BUCKET_NAME")
 
     # 1. Seznam všech souborů s událostmi (nové i původní denní)
     paginator = s3.get_paginator('list_objects_v2')
@@ -218,7 +218,7 @@ def rebuild_totals_from_files():
 def read_daily_entries(date_str):
     """Všechny události jednoho dne (nové samostatné soubory i původní denní soubor), seřazené podle času."""
     s3 = get_r2_client()
-    bucket = os.getenv("R2_BUCKET_NAME")
+    bucket = get_secret("R2_BUCKET_NAME")
     
     keys = []
     paginator = s3.get_paginator('list_objects_v2')
@@ -257,7 +257,7 @@ def generate_critique_md(critique_text, model_used, topic):
 def save_critique_to_r2(base_name, md_content, pdf_bytes):
     try:
         s3 = get_r2_client()
-        bucket = os.getenv("R2_BUCKET_NAME")
+        bucket = get_secret("R2_BUCKET_NAME")
         s3.put_object(Bucket=bucket, Key=f"VERDICT/markdown/{base_name}.md", Body=md_content.encode("utf-8"), ContentType="text/markdown")
         # Když se PDF nepodařilo vygenerovat (prázdné bajty), neukládáme prázdný soubor.
         if pdf_bytes:
