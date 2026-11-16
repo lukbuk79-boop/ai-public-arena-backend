@@ -1,4 +1,3 @@
-import os
 import hmac
 import time
 from datetime import datetime
@@ -7,13 +6,15 @@ import streamlit as st
 
 from utils.storage import rebuild_totals_from_files, read_daily_entries
 
+from utils.config import get_secret
+
 MAX_LOGIN_ATTEMPTS = 5
 
 st.title("📊 Analytika Arény")
 
 # --- Ochrana heslem ---
 # Žádné výchozí heslo: když DASHBOARD_PASSWORD chybí v secrets, dashboard zůstane zavřený.
-expected_password = os.getenv("DASHBOARD_PASSWORD")
+expected_password = get_secret("DASHBOARD_PASSWORD")
 if not expected_password:
     st.error("Dashboard není nakonfigurován (chybí DASHBOARD_PASSWORD v secrets).")
     st.stop()
