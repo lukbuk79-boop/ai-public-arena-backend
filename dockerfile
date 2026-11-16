@@ -1,29 +1,24 @@
-FROM python:3.12-slim
+FROM python:3.10-slim
 
-# 1. Instalace systémových knihoven pro WeasyPrint (Pango, Cairo atd.)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpango-1.0-0 \
-    libpangoft2-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf-2.0-0 \
-    libffi-dev \
-    libharfbuzz0b \
-    libcairo2 \
-    shared-mime-info \
-    fonts-liberation \
-    fonts-dejavu-core \
-    && rm -rf /var/lib/apt/lists/*
-
-# 2. Nastavení pracovního adresáře
+# Pracovní adresář
 WORKDIR /app
 
-# 3. Instalace Python závislostí
+# Instalace systémových závislostí (pokud jsou potřeba, např. pro PDF nebo git)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Kopírování requirements a instalace závislostí
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 4. Zkopírování zbytku aplikace
+# Kopírování zbytku aplikace
 COPY . .
 
-# 5. Spuštění Streamlitu na portu 8080 (který Cloud Run očekává)
+# Expozice portu, který Streamlit očekává (Cloud Run vyžaduje port 8080)
 EXPOSE 8080
-CMD streamlit run app.py --server.port=8080 --server.address=0.0.0.0
+
+# Spuštění Streamlitu s vazbou na port 8080 a vypnutím sběru metrik
+ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8080", "--server.address=0.0.0.0", "--server.headless=true"]
