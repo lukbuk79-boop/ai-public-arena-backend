@@ -1,7 +1,8 @@
-import os
 import re
 import streamlit as st
 import time
+import os
+import base64
 from datetime import datetime
 from google import genai
 from google.genai import types
@@ -294,8 +295,6 @@ def render_summary_ui(available_providers_list):
 
 # --- ÚVODNÍ STRÁNKA ---
 if not st.session_state.debate_active:
-    
-    import base64
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.dirname(current_dir)
