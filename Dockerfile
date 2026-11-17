@@ -1,10 +1,10 @@
-FROM python:3.10-slim
+FROM python:3.12-slim-bookworm
 
 # Pracovní adresář
 WORKDIR /app
 
-# Instalace systémových závislostí VČETNĚ knihoven pro WeasyPrint (Cairo, Pango, atd.)
-RUN apt-get update && apt-get install -y \
+# Instalace systémových závislostí pro WeasyPrint a další
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     git \
@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     libcairo2 \
     libgdk-pixbuf-2.0-0 \
     libglib2.0-0 \
-    libffi-dev \
+    libffi8 \
     shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
