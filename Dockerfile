@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalace Python závislostí přímo do čistého obrazu (zůstane pod 500 MB)
+# Instalace Python závislostí bez ukládání mezipaměti
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
@@ -25,5 +25,5 @@ COPY . .
 
 EXPOSE 8080
 
-# Spuštění Streamlitu s dynamickým portem, který Cloud Run automaticky dodá
+# Spuštění Streamlitu s dynamickým portem Cloud Runu
 CMD streamlit run app.py --server.port=${PORT} --server.address=0.0.0.0 --server.headless=true
