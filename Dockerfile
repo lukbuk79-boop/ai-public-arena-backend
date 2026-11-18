@@ -46,4 +46,4 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY . .
 
 EXPOSE 8080
-ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8080", "--server.address=0.0.0.0", "--server.headless=true"]
+ENTRYPOINT sh -c "streamlit run app.py --server.port=${PORT:-8080} --server.address=0.0.0.0 --server.headless=true"
