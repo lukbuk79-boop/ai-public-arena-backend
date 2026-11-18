@@ -1,5 +1,5 @@
 # ==========================================
-# FÁZE 1: Builder (těžké nástroje pro instalaci)
+# FÁZE 1: Builder (instalace závislostí)
 # ==========================================
 FROM python:3.12-slim-bookworm AS builder
 
@@ -17,13 +17,13 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # ==========================================
-# FÁZE 2: Runtime (lehký čistý image pro Cloud Run)
+# FÁZE 2: Runtime (lehký finální image)
 # ==========================================
 FROM python:3.12-slim-bookworm AS runtime
 
 WORKDIR /app
 
-# Instalace běhových knihoven VČETNĚ Panga pro PDF/Cairo/WeasyPrint
+# Instalace nutných běhových knihoven
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
@@ -36,14 +36,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
-# Zkopírování hotového virtuálního prostředí z builderu
+# Zkopírování virtuálního prostředí z builderu
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Zkopírování zbytku aplikace
+# Zkopírování zdrojových kódů aplikace
 COPY . .
 
 EXPOSE 8080
 
-# Spuštění s dynamickým portem Cloud Runu přes shell
-CMD sh -c "streamlit run app.py --server.port=${PORT:-8080} --server.address=0.0.0.0 --server.headless=true"
+# Přímé spuštění přes absolutní cestu k binárce s portem 8080
+CMD ["sh", "-c", "streamlit run app.py --server.port=${PORT:-8080} --server.address=0.0.0.0 --server.headless=true"]
