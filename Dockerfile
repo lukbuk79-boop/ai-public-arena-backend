@@ -25,5 +25,5 @@ COPY . .
 
 EXPOSE 8080
 
-# Čisté spuštění Streamlitu, port si Cloud Run řádně obslouží sám
-CMD streamlit run app.py --server.address=0.0.0.0 --server.headless=true
+# Spuštění Streamlitu s explicitním předáním portu z Cloud Run
+CMD sh -c "streamlit run app.py --server.port=${PORT:-8080} --server.address=0.0.0.0 --server.headless=true"
