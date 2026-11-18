@@ -46,4 +46,4 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY . .
 
 EXPOSE 8080
-CMD streamlit run app.py --server.port=${PORT} --server.address=0.0.0.0 --server.headless=true
+CMD streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true
